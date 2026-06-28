@@ -249,28 +249,73 @@ export default function HomePage() {
       {/* Partner Wrapper Hook */}
       <PartnerSection partner={profile?.partner} />
 
-      {/* Quick Stats Grid Dashboard Card */}
-      <motion.div 
-        className="px-5 mt-4 grid grid-cols-2 gap-3"
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
-      >
-        {[
-          { label: 'FRIENDS', value: stats.totalFriends, color: '#00F0FF' },
-          { label: 'TOTAL SYNERGY', value: stats.totalSynergy, color: '#FF6B6B' },
-          { label: 'AVG SYNERGY', value: stats.avgSynergy, color: '#FFD700' },
-          { label: 'COLL. AVG', value: stats.collectionAvg, color: '#B829DD' },
-          { label: 'MEMORIES', value: stats.totalMemories, color: '#4ECDC4' },
-          { label: 'HIGHEST SYN', value: stats.highestSynergy, color: '#00E5FF' },
-        ].map((stat) => (
-          <div key={stat.label} className="p-3 rounded-xl bg-[#0d121f]/40 border border-white/5 backdrop-blur-sm">
-            <p className="text-[9px] text-slate-400 font-bold tracking-wider">{stat.label}</p>
-            <p className="text-lg font-black mt-1 font-mono" style={{ color: stat.color }}>{stat.value}+</p>
-          </div>
-        ))}
-      </motion.div>
+      {/* Premium Vault Achievements */}
+<motion.div
+  className="px-5 mt-5"
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+>
+  <div className="rounded-2xl border border-cyan-500/20 bg-[#0d121f]/60 backdrop-blur-md p-4">
 
+    <h2 className="text-cyan-400 text-sm font-bold tracking-[3px] uppercase mb-4">
+      🏆 Vault Achievements
+    </h2>
+
+    <div className="grid grid-cols-2 gap-3">
+
+      {[
+        {
+          title: "Conqueror",
+          icon: "🏆",
+          color: "#FFD700",
+        },
+        {
+          title: "Mythic Fashion",
+          icon: "👑",
+          color: "#FF4FD8",
+        },
+        {
+          title: "Dominator",
+          icon: "🔥",
+          color: "#FF6B00",
+        },
+        {
+          title: "Elite Collector",
+          icon: "💎",
+          color: "#00F0FF",
+        },
+        {
+          title: "OG Player",
+          icon: "⭐",
+          color: "#9B5CFF",
+        },
+        {
+          title: "Event Champion",
+          icon: "⚔️",
+          color: "#00FF88",
+        },
+<div
+  key={badge.title}
+  className="rounded-xl p-3 border transition-all duration-300 hover:scale-105"
+  style={{
+    borderColor: `${badge.color}40`,
+    background: `${badge.color}10`,
+  }}
+>
+  <div
+    className="text-xl mb-2"
+    style={{ color: badge.color }}
+  >
+    {badge.icon}
+  </div>
+
+  <p
+    className="text-xs font-bold"
+    style={{ color: badge.color }}
+  >
+    {badge.title}
+  </p>
+</div>
       {/* Profile Details Block Card Layout */}
       <div className="px-5 mt-5">
         <div className="rounded-2xl p-4 bg-[#0d121f]/40 border border-white/5 space-y-4">
