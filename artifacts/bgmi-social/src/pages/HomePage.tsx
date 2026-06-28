@@ -2,14 +2,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-import HeroSection from "./components/home/HeroSection";
-import PartnerCard from "./components/home/PartnerCard";
-import StatsSection from "./components/home/StatsSection";
-import Achievements from "./components/home/Achievements";
-import GalleryPreview from "./components/home/GalleryPreview";
-import QuickActions from "./components/home/QuickActions";
-import BottomNavigation from "./components/home/BottomNavigation";
-import FeaturedFriends from "./components/home/FeaturedFriends";
+import HeroSection from "../components/home/HeroSection";
+import PartnerCard from "../components/home/PartnerCard";
+import StatsSection from "../components/home/StatsSection";
+import Achievements from "../components/home/Achievements";
+import GalleryPreview from "../components/home/GalleryPreview";
+import QuickActions from "../components/home/QuickActions";
+import BottomNavigation from "../components/home/BottomNavigation";
+import FeaturedFriends from "../components/home/FeaturedFriends";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
