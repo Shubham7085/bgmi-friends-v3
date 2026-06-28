@@ -1,634 +1,820 @@
-import { useState, useEffect, useRef, memo } from 'react';
-import { motion } from 'framer-motion';
-import {
-  MapPin, Heart, ChevronRight, Instagram,
-  Users, Trophy, Image, BarChart2, Settings,
-  Share2, Menu, Star, Target, Zap, Shield,
-} from 'lucide-react';
-import { getProfile, getSocialLinks, getFriends, getGallery, getSettings } from '../data/firebaseService';
-import type { PartnerData } from '../types';
-import GlassCard from '../components/ui/GlassCard';
-import AnimatedCounter from '../components/ui/AnimatedCounter';
-import { staggerContainer, fadeInUp } from '../utils/animations';
-import { useNavigate } from 'react-router-dom';
-import { getKdColor, getKdDot, formatKd } from '../utils/kdColor';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGMI Vault Profile</title>
+    <style>
+        /* --- GLOBAL THEME & RESET --- */
+        :root {
+            --bg-color: #06080d;
+            --card-bg: #0f121a;
+            --text-main: #ffffff;
+            --text-muted: #8b92a5;
+            --cyan: #00d9ff;
+            --gold: #ffc107;
+            --pink: #ff2a7a;
+            --orange: #ff9800;
+            --green: #00e676;
+            --purple: #b300ff;
+            --border-radius: 12px;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-// ── NAV ────────────────────────────────────────────────────
-const NAV_TABS = [
-  { label: 'Home',        emoji: '🏠', path: '/' },
-  { label: 'Friends',     emoji: '👥', path: '/friends' },
-  { label: 'Leaderboard', emoji: '🏆', path: '/leaderboard' },
-  { label: 'Gallery',     emoji: '🖼️', path: '/gallery' },
-  { label: 'Admin',       emoji: '⚙️', path: '/admin' },
-];
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-family);
+            -webkit-tap-highlight-color: transparent;
+        }
 
-// ── ACHIEVEMENTS ────────────────────────────────────────────
-const DEFAULT_ACHIEVEMENTS = [
-  { label: 'WELL-LIKED',      icon: '💜', color: '#EC4899', points: 1000 },
-  { label: 'BATTLE-HARDENED', icon: '⭐', color: '#FFD700', points: 500  },
-  { label: 'WEAPON MASTER',   icon: '❌', color: '#EF4444', points: 200  },
-  { label: 'HEADSHOT MASTER', icon: '💀', color: '#3B82F6', points: 300  },
-  { label: 'CHICKEN EXPERT',  icon: '🏛️', color: '#10B981', points: 100  },
-  { label: 'SYNC LEGEND',     icon: '🎯', color: '#A855F7', points: 50   },
-];
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+        }
 
-// ── UTILS ───────────────────────────────────────────────────
-function calcAnniversary(since: string) {
-  if (!since) return null;
-  const diff = Date.now() - new Date(since).getTime();
-  if (diff < 0) return null;
-  const totalDays = Math.floor(diff / 86400000);
-  return {
-    years:     Math.floor(totalDays / 365),
-    months:    Math.floor((totalDays % 365) / 30),
-    days:      totalDays % 30,
-    hours:     Math.floor((diff % 86400000) / 3600000),
-    totalDays,
-  };
-}
+        /* Mobile Viewport Container */
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            padding: 15px 15px 90px 15px; /* Bottom padding for fixed nav */
+            overflow-x: hidden;
+        }
 
-function formatTimer(c: NonNullable<ReturnType<typeof calcAnniversary>>) {
-  const parts = [];
-  if (c.years  > 0) parts.push(`${c.years}Y`);
-  if (c.months > 0) parts.push(`${c.months}M`);
-  if (c.days   > 0) parts.push(`${c.days}D`);
-  return parts.join(' ') || '< 1D';
-}
+        /* --- TOP HEADER --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--text-main);
+            letter-spacing: 1px;
+        }
+        .logo span { color: var(--cyan); }
 
-// ── PARTNER SECTION ─────────────────────────────────────────
-const PartnerSection = memo(function PartnerSection({ partner }: { partner: PartnerData }) {
-  const [counter, setCounter] = useState(() => calcAnniversary(partner?.playingTogetherSince));
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+        /* --- HERO PROFILE SECTION --- */
+        .hero-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: url('https://i.imgur.com/QXb6bZy.jpeg') center/cover;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            position: relative;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, rgba(6,8,13,0.9) 0%, rgba(6,8,13,0.4) 100%);
+            border-radius: var(--border-radius);
+            z-index: 0;
+        }
+        .avatar-box {
+            position: relative;
+            z-index: 1;
+            width: 130px;
+            text-align: center;
+        }
+        .avatar-frame {
+            width: 110px;
+            height: 110px;
+            border: 3px solid var(--gold);
+            border-radius: 10px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .avatar-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .online-badge {
+            position: absolute;
+            top: -10px;
+            left: 5px;
+            background: var(--green);
+            color: #000;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .level-badge {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #222;
+            border: 2px solid var(--gold);
+            padding: 2px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .hero-details {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .hero-details h1 {
+            font-size: 1.4rem;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .verified-tick { color: var(--cyan); font-size: 1rem; }
+        .real-name { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
+        .id-location { font-size: 0.8rem; margin-bottom: 10px; }
+        .id-text { color: var(--cyan); font-weight: bold; }
+        
+        .badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .badge {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .badge-verified { color: var(--cyan); border-color: rgba(0, 217, 255, 0.3); }
+        .badge-elite { color: var(--gold); border-color: rgba(255, 193, 7, 0.3); }
+        .badge-conqueror { color: var(--orange); border-color: rgba(255, 152, 0, 0.3); }
+        .badge-mythic { color: var(--purple); border-color: rgba(179, 0, 255, 0.3); }
 
-  useEffect(() => {
-    if (!partner?.playingTogetherSince) return;
-    timerRef.current = setInterval(
-      () => setCounter(calcAnniversary(partner.playingTogetherSince)), 60000
-    );
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [partner?.playingTogetherSince]);
+        /* --- STATS GRID ROW 1 --- */
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+            text-align: center;
+        }
+        .stat-icon { font-size: 1.2rem; }
+        .stat-title { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 1.1rem; font-weight: bold; }
+        
+        .val-kd { color: var(--cyan); }
+        .val-win { color: var(--gold); }
+        .val-hs { color: var(--pink); }
+        .val-dmg { color: var(--orange); }
 
-  if (!partner) return null;
+        /* --- GAMING PARTNER --- */
+        .partner-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 42, 122, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .partner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .partner-title {
+            color: var(--pink);
+            font-size: 0.85rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .partner-badge {
+            background: rgba(255, 193, 7, 0.1);
+            color: var(--gold);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+        .partner-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .partner-avatar {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: 2px solid var(--pink);
+            position: relative;
+        }
+        .partner-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .partner-online {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background: var(--green);
+            border-radius: 50%;
+            border: 2px solid var(--card-bg);
+        }
+        .partner-info h3 { font-size: 1.2rem; margin-bottom: 2px; }
+        .partner-info p { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px; }
+        .lover-tag {
+            background: rgba(255, 42, 122, 0.1);
+            color: var(--pink);
+            border: 1px solid rgba(255, 42, 122, 0.3);
+            font-size: 0.6rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .partner-stats {
+            margin-left: auto;
+            display: flex;
+            gap: 15px;
+            text-align: center;
+        }
+        .p-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .p-stat span { font-size: 0.6rem; color: var(--text-muted); }
+        .p-stat strong { font-size: 0.9rem; color: var(--pink); }
+        .p-stat strong.cyan-text { color: var(--cyan); }
 
-  const kd = partner?.kd ?? 0;
+        /* --- MIDDLE STATS (3 Columns) --- */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: var(--border-radius);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .stat-box .icon { font-size: 1.2rem; }
+        .stat-box-info p { font-size: 0.55rem; color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase;}
+        .stat-box-info strong { font-size: 0.9rem; }
 
-  return (
-    <div className="mx-3 mt-3 rounded-2xl p-4 relative overflow-hidden"
-      style={{
-        background: 'rgba(10,12,24,0.97)',
-        border: '1px solid rgba(244,63,94,0.35)',
-        boxShadow: '0 0 30px rgba(244,63,94,0.08)',
-      }}>
-      {/* header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Heart className="w-4 h-4 fill-[#F43F5E] text-[#F43F5E]" />
-          <span className="text-sm font-black tracking-widest uppercase"
-            style={{ color: '#F43F5E', textShadow: '0 0 10px rgba(244,63,94,0.5)' }}>
-            Gaming Partner
-          </span>
+        /* --- MIDDLE STATS (4 Columns) --- */
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .grid-4 .stat-box {
+            flex-direction: column;
+            text-align: center;
+            gap: 5px;
+            padding: 10px;
+        }
+        
+        /* --- PROFILE DETAILS SECTION --- */
+        .details-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(179, 0, 255, 0.2);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px 5px;
+        }
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .detail-item span { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; }
+        .detail-item strong { font-size: 0.8rem; }
+        .tier-text { color: var(--gold); }
+
+        /* --- ACHIEVEMENTS --- */
+        .achievements-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .ach-grid {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+        }
+        .ach-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .ach-icon {
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.05);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .ach-item span { font-size: 0.55rem; text-transform: uppercase; }
+        .ach-score { font-size: 0.65rem; }
+
+        /* --- BOTTOM GRIDS (Quick Actions & Friends) --- */
+        .bottom-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .half-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .action-btn {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 12px 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.65rem;
+            color: var(--text-main);
+            text-decoration: none;
+        }
+        .action-btn i { font-size: 1.2rem; }
+        
+        .friend-list {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .add-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 1px dashed var(--text-muted);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        /* --- GALLERY PREVIEW --- */
+        .gallery-preview {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        .gallery-preview::-webkit-scrollbar { display: none; }
+        .gallery-img {
+            min-width: 80px;
+            height: 50px;
+            border-radius: 6px;
+            background: #222;
+            object-fit: cover;
+        }
+
+        /* --- BOTTOM NAVIGATION --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #06080d;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0 20px 0;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            text-decoration: none;
+        }
+        .nav-item.active {
+            color: var(--cyan);
+        }
+        .nav-icon {
+            font-size: 1.3rem;
+        }
+        
+        /* Helper Classes */
+        .text-cyan { color: var(--cyan); }
+        .text-pink { color: var(--pink); }
+        .text-gold { color: var(--gold); }
+        .text-link { color: var(--cyan); font-size: 0.7rem; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-icon">≡</div>
+        <div class="logo">🛡️ BGMI <span>VAULT</span></div>
+        <div class="header-icon">➦</div>
+    </header>
+
+    <!-- Hero Profile Section -->
+    <section class="hero-section">
+        <div class="avatar-box">
+            <span class="online-badge">ONLINE</span>
+            <div class="avatar-frame">
+                <!-- Admin can change this image URL -->
+                <img src="https://i.imgur.com/QXb6bZy.jpeg" alt="Player Avatar">
+            </div>
+            <div class="level-badge">80</div>
         </div>
-        <span className="text-[10px] px-2.5 py-1 rounded-full font-black"
-          style={{ background: 'rgba(255,215,0,0.15)', border: '1px solid rgba(255,215,0,0.35)', color: '#FFD700' }}>
-          👑 Elite Partner
-        </span>
-      </div>
+        <div class="hero-details">
+            <h1>D3xSHUBHAM <span class="verified-tick">✔</span></h1>
+            <p class="real-name">SHUBHAM KUMAR NAGVANSHI</p>
+            <p class="id-location">ID: <span class="id-text">5305051851</span> &nbsp; 📍 INDIA</p>
+            <div class="badges">
+                <span class="badge badge-verified">✔ Verified Player</span>
+                <span class="badge badge-elite">👑 Elite Player</span>
+                <span class="badge badge-conqueror">🎯 Conqueror</span>
+                <span class="badge badge-mythic">💎 Mythic Fashion</span>
+            </div>
+            <!-- Absolute Rank Badge on Right -->
+            <div style="position: absolute; right: -5px; top: 10px; text-align: center;">
+                <div style="font-size: 2rem;">🌟</div>
+                <div class="text-gold" style="font-size: 0.65rem; font-weight: bold; margin-top: 5px;">ACE DOMINATOR</div>
+                <div style="font-size: 0.8rem; margin-top: 2px;">⭐ 22</div>
+            </div>
+        </div>
+    </section>
 
-      {/* body */}
-      <div className="flex items-center gap-3">
-        {/* avatar */}
-        <div className="relative flex-shrink-0">
-          <div className="w-16 h-16 rounded-full overflow-hidden"
-            style={{
-              border: '2.5px solid #F43F5E',
-              boxShadow: '0 0 20px rgba(244,63,94,0.6), 0 0 40px rgba(244,63,94,0.2)',
-            }}>
-            {partner.photo
-              ? <img src={partner.photo} alt={partner.name} className="w-full h-full object-cover" />
-              : <div className="w-full h-full flex items-center justify-center font-black text-2xl text-white"
-                  style={{ background: 'linear-gradient(135deg,#1a0010,#0d0008)' }}>
-                  {partner.name?.[0] ?? '?'}
+    <!-- Top Stats Grid -->
+    <div class="stats-row">
+        <div class="stat-item">
+            <span class="stat-icon text-cyan">🎯</span>
+            <span class="stat-title">K/D Ratio</span>
+            <span class="stat-value val-kd">5.24</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-icon text-gold">🏆</span>
+            <span class="stat-title">Win Rate</span>
+            <span class="stat-value val-win">63.2%</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-icon text-pink">🔫</span>
+            <span class="stat-title">Headshot %</span>
+            <span class="stat-value val-hs">19.8%</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-icon text-orange">💥</span>
+            <span class="stat-title">Avg Damage</span>
+            <span class="stat-value val-dmg">842.6</span>
+        </div>
+    </div>
+
+    <!-- Gaming Partner Section -->
+    <div class="partner-card">
+        <div class="partner-header">
+            <div class="partner-title">❤️ GAMING PARTNER</div>
+            <div class="partner-badge">👑 Elite Partner</div>
+        </div>
+        <div class="partner-content">
+            <div class="partner-avatar">
+                <img src="https://i.imgur.com/QXb6bZy.jpeg" alt="Partner">
+                <span class="partner-online"></span>
+            </div>
+            <div class="partner-info">
+                <h3>As</h3>
+                <p>UID: 123456</p>
+                <span class="lover-tag">Lover</span>
+            </div>
+            <div class="partner-stats">
+                <div class="p-stat">
+                    <span>❤️ KD</span>
+                    <strong>10.00+</strong>
                 </div>
-            }
-          </div>
-          <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-[#0a0c18]"
-            style={{ background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,0.9)' }} />
-        </div>
-
-        {/* name + uid */}
-        <div className="flex-1 min-w-0">
-          <p className="text-base font-black text-white">{partner.name || '—'}</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">UID: {partner.uid || '—'}</p>
-          <span className="mt-1.5 inline-block text-[9px] px-2 py-0.5 rounded-full font-bold"
-            style={{ background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', color: '#F43F5E' }}>
-            Lover
-          </span>
-        </div>
-
-        {/* 3 stat boxes */}
-        <div className="flex flex-col gap-1.5 flex-shrink-0">
-          {/* KD */}
-          <div className="px-3 py-1.5 rounded-xl text-center"
-            style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.25)' }}>
-            <p className="text-sm font-black" style={{ color: '#F43F5E' }}>
-              <Heart className="w-3 h-3 inline mr-0.5 fill-[#F43F5E]" />{formatKd(kd)}+
-            </p>
-            <p className="text-[7px] text-slate-400 font-bold uppercase tracking-wider">KD</p>
-          </div>
-          {/* Synergy */}
-          <div className="px-3 py-1.5 rounded-xl text-center"
-            style={{ background: 'rgba(0,240,255,0.07)', border: '1px solid rgba(0,240,255,0.2)' }}>
-            <p className="text-sm font-black text-[#00F0FF]">🔗 {partner.synergy ?? 0}+</p>
-            <p className="text-[7px] text-slate-400 font-bold uppercase tracking-wider">Synergy</p>
-          </div>
-          {/* Playing Together */}
-          <div className="px-3 py-1.5 rounded-xl text-center"
-            style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
-            <p className="text-[11px] font-black text-[#A855F7]">
-              {counter ? formatTimer(counter) : '—'}
-            </p>
-            <p className="text-[7px] text-slate-400 font-bold uppercase tracking-wider">Together</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-// ── HEXAGON BADGE ───────────────────────────────────────────
-function HexBadge({ ach }: { ach: typeof DEFAULT_ACHIEVEMENTS[0] }) {
-  return (
-    <div className="flex flex-col items-center flex-shrink-0 w-[72px]">
-      <div
-        className="w-14 h-14 flex items-center justify-center relative"
-        style={{
-          clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)',
-          background: `linear-gradient(135deg, rgba(10,12,24,1), ${ach.color}33)`,
-          boxShadow: `0 0 14px ${ach.color}40`,
-          border: `2px solid ${ach.color}60`,
-        }}
-      >
-        <span className="text-xl">{ach.icon}</span>
-      </div>
-      <p className="text-[7px] text-slate-300 font-black text-center mt-1.5 leading-tight uppercase">{ach.label}</p>
-      <p className="text-[9px] font-black mt-0.5" style={{ color: ach.color }}>{ach.points}</p>
-    </div>
-  );
-}
-
-// ── STAT ROW CARD ────────────────────────────────────────────
-function StatCard({ icon, label, value, color }: { icon: string; label: string; value: string; color: string }) {
-  return (
-    <div className="rounded-xl p-3 flex items-center gap-2.5"
-      style={{ background: 'rgba(10,12,24,0.97)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <span className="text-xl flex-shrink-0">{icon}</span>
-      <div className="min-w-0">
-        <p className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">{label}</p>
-        <p className="text-sm font-black" style={{ color }}>{value}</p>
-      </div>
-    </div>
-  );
-}
-
-// ── MAIN PAGE ────────────────────────────────────────────────
-export default function HomePage() {
-  const [profile,  setProfile]  = useState<any>(null);
-  const [social,   setSocial]   = useState<any>(null);
-  const [friends,  setFriends]  = useState<any[]>([]);
-  const [gallery,  setGallery]  = useState<any[]>([]);
-  const [siteSettings, setSiteSettings] = useState<any>(null);
-  const [loading,  setLoading]  = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [p, s, f, g, st] = await Promise.all([
-          getProfile(), getSocialLinks(), getFriends(), getGallery(), getSettings(),
-        ]);
-        setProfile(p); setSocial(s); setFriends(f); setGallery(g); setSiteSettings(st);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    })();
-  }, []);
-
-  if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-3" style={{ background: '#070B14' }}>
-      <div className="w-10 h-10 rounded-full animate-spin"
-        style={{ border: '3px solid rgba(0,240,255,0.1)', borderTopColor: '#00F0FF' }} />
-      <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: 'rgba(0,240,255,0.5)' }}>
-        Loading Vault...
-      </p>
-    </div>
-  );
-
-  const kd      = profile?.kd ?? 5.24;
-  const kdColor = getKdColor(kd);
-  const badges: string[] = profile?.badges ?? [];
-  const achievements = profile?.achievements ?? DEFAULT_ACHIEVEMENTS;
-
-  const stats = {
-    totalFriends:   friends.length || 1,
-    totalSynergy:   friends.reduce((s: number, f: any) => s + (f.synergy || 0), 0) || 4499,
-    highestSynergy: friends.length ? Math.max(...friends.map((f: any) => f.synergy || 0)) : 4499,
-    avgSynergy:     friends.length
-      ? Math.round(friends.reduce((s: number, f: any) => s + (f.synergy || 0), 0) / friends.length)
-      : 4499,
-    totalMemories:  friends.reduce((s: number, f: any) => s + (f.memories?.length || 0), 0),
-    collectionAvg:  friends.length
-      ? Math.round(friends.reduce((s: number, f: any) => s + (f.collectionLevel || 0), 0) / friends.length)
-      : 6469,
-  };
-
-  return (
-    <div className="min-h-screen text-white font-sans overflow-x-hidden pb-24"
-      style={{ background: '#070B14' }}>
-
-      {/* ── TOP BAR ── */}
-      <div className="sticky top-0 z-50 px-4 py-3 flex items-center justify-between"
-        style={{
-          background: 'rgba(7,11,20,0.96)',
-          backdropFilter: 'blur(16px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-        }}>
-        <button className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Menu className="w-4 h-4 text-slate-400" />
-        </button>
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🛡️</span>
-          <span className="text-sm font-black tracking-[0.15em]" style={{ color: '#00F0FF' }}>BGMI VAULT</span>
-        </div>
-        <button className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Share2 className="w-4 h-4 text-slate-400" />
-        </button>
-      </div>
-
-      {/* ── HERO SECTION ── */}
-      <div className="relative overflow-hidden" style={{ minHeight: 220 }}>
-        {/* background */}
-        <div className="absolute inset-0"
-          style={{
-            backgroundImage: profile?.heroBackground
-              ? `url(${profile.heroBackground})`
-              : 'linear-gradient(135deg,#0a1628 0%,#0d1a35 50%,#070B14 100%)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }} />
-        {/* dark overlay */}
-        <div className="absolute inset-0"
-          style={{ background: 'linear-gradient(180deg,rgba(7,11,20,0.5) 0%,rgba(7,11,20,0.75) 70%,#070B14 100%)' }} />
-
-        <div className="relative z-10 px-3 pt-4 pb-6 flex items-start gap-3">
-
-          {/* ── AVATAR CARD (gaming card style) ── */}
-          <div className="relative flex-shrink-0">
-            {/* golden outer glow frame */}
-            <div className="relative w-[110px]"
-              style={{
-                filter: 'drop-shadow(0 0 16px rgba(255,180,0,0.5))',
-              }}>
-              {/* golden border frame */}
-              <div className="rounded-xl overflow-hidden"
-                style={{
-                  border: '2px solid #C8820A',
-                  boxShadow: '0 0 0 1px rgba(255,215,0,0.3), inset 0 0 20px rgba(255,140,0,0.1)',
-                  background: 'linear-gradient(135deg,#1a1200,#0d0800)',
-                }}>
-                {/* ONLINE badge */}
-                <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-1.5 py-0.5 rounded-md"
-                  style={{ background: 'rgba(34,197,94,0.85)', backdropFilter: 'blur(4px)' }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  <span className="text-[8px] font-black text-white uppercase tracking-wider">Online</span>
+                <div class="p-stat">
+                    <span>🔗 SYNERGY</span>
+                    <strong class="cyan-text">100000+</strong>
                 </div>
-
-                {/* avatar image */}
-                <div className="w-full h-[120px] overflow-hidden">
-                  <img
-                    src={profile?.profilePhoto || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=300'}
-                    alt="Avatar"
-                    className="w-full h-full object-cover object-top"
-                  />
+                <div class="p-stat">
+                    <span>PLAYING TOGETHER</span>
+                    <strong style="color: #fff; font-size: 0.75rem;">2Y 5M 12D</strong>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                {/* IGN + level bar */}
-                <div className="px-2 py-1.5 text-center"
-                  style={{ background: 'linear-gradient(180deg,rgba(10,8,0,0.9),rgba(20,15,0,0.95))' }}>
-                  <p className="text-[10px] font-black text-[#FFD700] tracking-wider truncate">
-                    {profile?.ign || 'D3xSHUBHAM'}
-                  </p>
-                  <div className="flex items-center justify-center gap-1 mt-0.5">
-                    <div className="flex-1 h-1 rounded-full" style={{ background: 'rgba(255,215,0,0.15)' }}>
-                      <div className="h-full rounded-full" style={{ width: '80%', background: 'linear-gradient(90deg,#FFD700,#FF8C00)' }} />
+    <!-- Middle Stats Row 1 -->
+    <div class="grid-3">
+        <div class="stat-box">
+            <div class="icon text-cyan">👥</div>
+            <div class="stat-box-info">
+                <p>Friends</p>
+                <strong>1+</strong>
+            </div>
+        </div>
+        <div class="stat-box">
+            <div class="icon text-pink">❤️</div>
+            <div class="stat-box-info">
+                <p>Total Synergy</p>
+                <strong>4,499+</strong>
+            </div>
+        </div>
+        <div class="stat-box">
+            <div class="icon text-gold">🏅</div>
+            <div class="stat-box-info">
+                <p>Avg Synergy</p>
+                <strong>4,499+</strong>
+            </div>
+        </div>
+    </div>
+    <!-- Middle Stats Row 2 -->
+    <div class="grid-4">
+        <div class="stat-box">
+            <div class="icon text-purple">🎯</div>
+            <div class="stat-box-info">
+                <p>Collection</p>
+                <strong>71+</strong>
+            </div>
+        </div>
+        <div class="stat-box">
+            <div class="icon text-orange">🔥</div>
+            <div class="stat-box-info">
+                <p>Popularity</p>
+                <strong>226874+</strong>
+            </div>
+        </div>
+        <div class="stat-box">
+            <div class="icon text-green">🖼️</div>
+            <div class="stat-box-info">
+                <p>Memories</p>
+                <strong>0+</strong>
+            </div>
+        </div>
+        <div class="stat-box">
+            <div class="icon text-cyan">🏆</div>
+            <div class="stat-box-info">
+                <p>High Synergy</p>
+                <strong>4,499+</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Details Card -->
+    <div class="details-card">
+        <div class="section-header">
+            <span>⚔️ PROFILE DETAILS</span>
+        </div>
+        <div class="details-grid">
+            <div class="detail-item">
+                <span>Collection Level</span>
+                <strong>71+</strong>
+            </div>
+            <div class="detail-item">
+                <span>Account Level</span>
+                <strong>91+</strong>
+            </div>
+            <div class="detail-item">
+                <span>Current Tier</span>
+                <strong class="tier-text">Ace Dominator</strong>
+            </div>
+            <div class="detail-item">
+                <span>State</span>
+                <strong>BIHAR</strong>
+            </div>
+            
+            <div class="detail-item" style="margin-top: 10px;">
+                <span>Popularity</span>
+                <strong>2267874+</strong>
+            </div>
+            <div class="detail-item" style="margin-top: 10px;">
+                <span>Likes</span>
+                <strong>26868+</strong>
+            </div>
+            <div class="detail-item" style="margin-top: 10px;">
+                <span>Highest Tier</span>
+                <strong class="tier-text">Ace Dominator</strong>
+            </div>
+            <div class="detail-item" style="margin-top: 10px;">
+                <span>Country</span>
+                <strong>INDIA</strong>
+            </div>
+
+            <div class="detail-item" style="margin-top: 10px;">
+                <span>Matches</span>
+                <strong>0+</strong>
+            </div>
+            <div class="detail-item" style="margin-top: 10px;">
+                <span>Achievement Pts</span>
+                <strong>0+</strong>
+            </div>
+            <div class="detail-item" style="margin-top: 10px;">
+                <span>Playing Since</span>
+                <strong>8 YEARS</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements Card -->
+    <div class="achievements-card">
+        <div class="section-header">
+            <span>ACHIEVEMENTS</span>
+            <a href="#" class="text-link">View All ></a>
+        </div>
+        <div class="ach-grid">
+            <div class="ach-item">
+                <div class="ach-icon text-pink">💗</div>
+                <span>Well-Liked</span>
+                <span class="ach-score text-pink">1000</span>
+            </div>
+            <div class="ach-item">
+                <div class="ach-icon text-gold">⭐</div>
+                <span>Battle-Hard</span>
+                <span class="ach-score text-green">500</span>
+            </div>
+            <div class="ach-item">
+                <div class="ach-icon text-orange">⚔️</div>
+                <span>Wpn Master</span>
+                <span class="ach-score" style="color: #d81b60;">200</span>
+            </div>
+            <div class="ach-item">
+                <div class="ach-icon text-cyan">💀</div>
+                <span>HS Master</span>
+                <span class="ach-score text-cyan">300</span>
+            </div>
+            <div class="ach-item">
+                <div class="ach-icon text-green">🐔</div>
+                <span>Chicken Exp</span>
+                <span class="ach-score text-pink">100</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Split Section (Quick Actions & Friends) -->
+    <div class="bottom-split">
+        <!-- Quick Actions -->
+        <div class="half-card">
+            <div class="section-header" style="margin-bottom: 10px;">
+                <span>QUICK ACTIONS</span>
+            </div>
+            <div class="quick-actions">
+                <a href="#" class="action-btn">
+                    <i class="text-cyan">👥</i> All Friends
+                </a>
+                <a href="#" class="action-btn">
+                    <i class="text-gold">🏆</i> Top 10
+                </a>
+                <a href="#" class="action-btn">
+                    <i class="text-pink">🖼️</i> Gallery
+                </a>
+                <a href="#" class="action-btn">
+                    <i class="text-purple">📊</i> Statistics
+                </a>
+            </div>
+        </div>
+
+        <!-- Featured Friends -->
+        <div class="half-card">
+            <div class="section-header" style="margin-bottom: 10px;">
+                <span>FEATURED FRIENDS</span>
+                <a href="#" class="text-link">View All</a>
+            </div>
+            <div class="friend-list">
+                <div style="text-align: center;">
+                    <div class="partner-avatar" style="width: 50px; height: 50px; border-color: var(--cyan); margin: 0 auto;">
+                        <img src="https://i.imgur.com/QXb6bZy.jpeg" alt="Friend">
+                        <span class="partner-online"></span>
                     </div>
-                    <span className="text-[9px] font-black text-[#FF8C00]">{profile?.level || 80}</span>
-                  </div>
+                    <div style="font-size: 0.75rem; margin-top: 5px; font-weight: bold;">Jdn</div>
+                    <div style="font-size: 0.55rem; color: var(--green);">0.00+ KD</div>
                 </div>
-              </div>
-
-              {/* corner decorations */}
-              <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#FFD700] rounded-tl-lg" />
-              <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#FFD700] rounded-tr-lg" />
-              <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#FFD700] rounded-bl-lg" />
-              <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#FFD700] rounded-br-lg" />
-            </div>
-          </div>
-
-          {/* ── NAME + BADGES ── */}
-          <div className="flex-1 min-w-0 pt-2">
-            <div className="flex items-center gap-2">
-              <h1 className="text-[22px] font-black text-white leading-none tracking-wide">
-                {profile?.ign || 'D3xSHUBHAM'}
-              </h1>
-              {badges.includes('verified') && (
-                <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: '#2563EB', boxShadow: '0 0 8px rgba(37,99,235,0.8)' }}>
-                  <span className="text-[9px] text-white font-black">✔</span>
+                <div style="text-align: center; margin-left: 10px;">
+                    <div class="add-btn">+</div>
+                    <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 5px;">View All</div>
                 </div>
-              )}
             </div>
-            <p className="text-[11px] text-slate-300 mt-0.5 font-medium">{profile?.realName || 'SHUBHAM KUMAR NAGVANSHI'}</p>
-
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="text-[10px] font-black font-mono px-2 py-0.5 rounded-lg"
-                style={{ background: 'rgba(0,240,255,0.12)', border: '1px solid rgba(0,240,255,0.3)', color: '#00F0FF' }}>
-                ID: {profile?.bgmiId || '5305051851'}
-              </span>
-              <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {profile?.country || 'INDIA'}
-              </span>
-            </div>
-
-            {/* badge pills */}
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {badges.includes('verified') && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"
-                  style={{ color: '#3B82F6', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.35)' }}>
-                  ✔ Verified Player
-                </span>
-              )}
-              {badges.includes('elite') && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"
-                  style={{ color: '#FFD700', background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.35)' }}>
-                  👑 Elite Player
-                </span>
-              )}
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"
-                style={{ color: '#00F0FF', background: 'rgba(0,240,255,0.1)', border: '1px solid rgba(0,240,255,0.3)' }}>
-                🎯 Conqueror
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"
-                style={{ color: '#A855F7', background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)' }}>
-                💎 Mythic Fashion
-              </span>
-            </div>
-          </div>
-
-          {/* ── TIER (right) ── */}
-          <div className="flex-shrink-0 flex flex-col items-center pt-2">
-            <div className="text-4xl">🪖</div>
-            <p className="text-[9px] font-black text-center mt-1 uppercase leading-tight"
-              style={{ color: '#FFD700', textShadow: '0 0 10px rgba(255,215,0,0.7)' }}>
-              {(profile?.tier || 'ACE DOMINATOR').replace(' ', '\n')}
-            </p>
-            <div className="flex items-center gap-1 mt-1.5">
-              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-              <span className="text-[11px] font-black text-yellow-400">{profile?.tierStars || 22}</span>
-            </div>
-          </div>
         </div>
-      </div>
-
-{/* ── 4-STAT BAR ── */}
-      <div className="mx-3 mt-0 rounded-2xl"
-        style={{ background: 'rgba(10,12,24,0.97)', border: '1px solid rgba(255,255,255,0.07)' }}>
-        <div className="grid grid-cols-4 divide-x divide-white/5">
-          {[
-            { icon: '🎯', label: 'K/D RATIO',   value: formatKd(kd),                      color: '#00F0FF' },
-            { icon: '🏆', label: 'WIN RATE',     value: `${profile?.winRate || '63.2'}%`,  color: '#FFD700' },
-            { icon: '🎪', label: 'HEADSHOT %',   value: `${profile?.headshot || '19.8'}%`, color: '#F43F5E' },
-            { icon: '💥', label: 'AVG DAMAGE',   value: profile?.avgDamage || '842.6',     color: '#A855F7' },
-          ].map((s) => (
-            <div key={s.label} className="py-3 px-2 text-center">
-              <p className="text-base">{s.icon}</p>
-              <p className="text-[7px] text-slate-500 uppercase tracking-wider font-bold mt-0.5">{s.label}</p>
-              <p className="text-sm font-black mt-0.5" style={{ color: s.color }}>{s.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── PARTNER ── */}
-      <PartnerSection partner={profile?.partner} />
-
-      {/* ── 3-COL STATS ── */}
-      <div className="px-3 mt-3 grid grid-cols-3 gap-2">
-        <StatCard icon="👥" label="FRIENDS"       value={`${stats.totalFriends}+`}   color="#00F0FF" />
-        <StatCard icon="❤️"  label="TOTAL SYNERGY" value={`${stats.totalSynergy}+`}   color="#F43F5E" />
-        <StatCard icon="🏅" label="AVG SYNERGY"   value={`${stats.avgSynergy}+`}     color="#FFD700" />
-      </div>
-      <div className="px-3 mt-2 grid grid-cols-4 gap-2">
-        <StatCard icon="💠" label="COLL. LVL"     value={`${profile?.collectionLevel || 71}+`} color="#A855F7" />
-        <StatCard icon="🔥" label="POPULARITY"    value={`${profile?.popularity || '226874'}+`} color="#FF6B6B" />
-        <StatCard icon="🖼️"  label="MEMORIES"      value={`${stats.totalMemories}+`}  color="#4ECDC4" />
-        <StatCard icon="🏆" label="HIGHEST SYN"   value={`${stats.highestSynergy}+`} color="#00E5FF" />
-      </div>
-
-      {/* ── PROFILE DETAILS ── */}
-      <div className="mx-3 mt-3 rounded-2xl p-4"
-        style={{ background: 'rgba(10,12,24,0.97)', border: '1px solid rgba(168,85,247,0.25)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-base">⚔️</span>
-          <p className="text-xs font-black text-white uppercase tracking-widest">Profile Details</p>
-        </div>
-        <div className="grid grid-cols-4 gap-y-3">
-          {[
-            { label: 'COLLECTION LEVEL',   value: `${profile?.collectionLevel || 71}+`,    color: '#fff' },
-            { label: 'ACCOUNT LEVEL',      value: `${profile?.accountLevel || 91}+`,       color: '#fff' },
-            { label: 'CURRENT TIER',       value: profile?.tier || 'Ace Dominator',        color: '#FFD700' },
-            { label: 'STATE',              value: profile?.state || 'BIHAR',               color: '#fff' },
-            { label: 'POPULARITY',         value: `${profile?.popularity || '2267874'}+`,  color: '#fff' },
-            { label: 'LIKES',              value: `${profile?.likes || '26868'}+`,         color: '#fff' },
-            { label: 'HIGHEST TIER',       value: profile?.highestTier || 'Ace Dominator', color: '#FFD700' },
-            { label: 'COUNTRY',            value: profile?.country || 'INDIA',             color: '#fff' },
-            { label: 'MATCHES',            value: `${profile?.matches || 0}+`,             color: '#fff' },
-            { label: 'ACHIEVEMENT POINTS', value: `${profile?.achievementPoints || 0}+`,   color: '#fff' },
-            { label: 'PLAYING SINCE',      value: profile?.playingSince || '8 YEARS',      color: '#fff' },
-            { label: '',                   value: '',                                       color: '#fff' },
-          ].map((item, i) => (
-            <div key={i} className="min-w-0">
-              {item.label && <>
-                <p className="text-[7px] text-slate-500 uppercase tracking-wider font-bold leading-tight">{item.label}</p>
-                <p className="text-[11px] font-black mt-0.5 truncate" style={{ color: item.color }}>{item.value}</p>
-              </>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── ACHIEVEMENTS ── */}
-      <div className="mx-3 mt-3 rounded-2xl p-4"
-        style={{ background: 'rgba(10,12,24,0.97)', border: '1px solid rgba(255,255,255,0.07)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-black text-white uppercase tracking-widest">Achievements</p>
-          <button className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: '#00F0FF' }}>
-            View All <ChevronRight className="w-3 h-3" />
-          </button>
-        </div>
-        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
-          {(achievements.length > 0 ? achievements : DEFAULT_ACHIEVEMENTS).map((ach: any, i: number) => (
-            <HexBadge key={ach.label ?? i} ach={ach} />
-          ))}
-        </div>
-      </div>
-
-      {/* ── QUICK ACTIONS + FEATURED FRIENDS (side by side) ── */}
-      <div className="px-3 mt-3 grid grid-cols-2 gap-3">
-
-        {/* Quick Actions */}
-        <div className="rounded-2xl p-3"
-          style={{ background: 'rgba(10,12,24,0.97)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <p className="text-[10px] font-black text-white uppercase tracking-widest mb-2.5">Quick Actions</p>
-          <div className="flex flex-col gap-2">
-            {[
-              { label: 'All Friends', icon: Users,    path: '/friends',     color: '#00F0FF' },
-              { label: 'Top 10',      icon: Trophy,   path: '/leaderboard', color: '#FFD700' },
-              { label: 'Gallery',     icon: Image,    path: '/gallery',     color: '#FF6B6B' },
-              { label: 'Statistics',  icon: BarChart2,path: '/statistics',  color: '#A855F7' },
-            ].map((action) => (
-              <button
-                key={action.label}
-                onClick={() => navigate(action.path)}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl active:scale-95 transition-transform"
-                style={{ background: `${action.color}0C`, border: `1px solid ${action.color}20` }}
-              >
-                <action.icon className="w-4 h-4 flex-shrink-0" style={{ color: action.color }} />
-                <span className="text-[11px] font-black text-slate-200 flex-1 text-left">{action.label}</span>
-                <ChevronRight className="w-3 h-3 flex-shrink-0" style={{ color: action.color }} />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Featured Friends */}
-        <div className="rounded-2xl p-3"
-          style={{ background: 'rgba(10,12,24,0.97)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="flex items-center justify-between mb-2.5">
-            <p className="text-[10px] font-black text-white uppercase tracking-widest">Featured Friends</p>
-            <button onClick={() => navigate('/friends')} className="text-[9px] font-bold" style={{ color: '#00F0FF' }}>
-              View All
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {/* friend list */}
-            {friends.slice(0, 2).map((friend: any, idx: number) => {
-              const fkd = friend?.kd ?? 0;
-              const fColor = getKdColor(fkd);
-              return (
-                <div key={friend.id ?? idx} className="flex items-center gap-2">
-                  <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full overflow-hidden"
-                      style={{ border: `2px solid ${fColor}60`, boxShadow: `0 0 10px ${fColor}30` }}>
-                      <img
-                        src={friend.photo || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200'}
-                        alt={friend.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full border border-[#0a0c18]"
-                      style={{ background: friend.online ? '#22c55e' : '#475569' }} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black text-slate-200 truncate">{friend.name || '—'}</p>
-                    <p className="text-[9px] font-bold" style={{ color: fColor }}>{formatKd(fkd)}+ KD</p>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* View All circle */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate('/friends')}
-                className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
-                style={{ border: '2px dashed rgba(0,240,255,0.3)', background: 'rgba(0,240,255,0.05)' }}
-              >
-                <span className="text-lg text-[#00F0FF]">+</span>
-              </button>
-              <button onClick={() => navigate('/friends')}
-                className="text-[10px] font-black" style={{ color: '#00F0FF' }}>
-                View All
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── GALLERY PREVIEW ── */}
-      {gallery.length > 0 && (
-        <div className="mx-3 mt-3 rounded-2xl p-3"
-          style={{ background: 'rgba(10,12,24,0.97)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-black text-white uppercase tracking-widest">Gallery Preview</p>
-            <button onClick={() => navigate('/gallery')}
-              className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: '#00F0FF' }}>
-              Open Gallery <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {gallery.slice(0, 6).map((img: any, i: number) => (
-              <div
-                key={img.id ?? i}
-                onClick={() => navigate('/gallery')}
-                className="aspect-square rounded-xl overflow-hidden cursor-pointer"
-                style={{ border: '1px solid rgba(255,255,255,0.07)' }}
-              >
-                <img
-                  src={img.url ?? img.src}
-                  alt=""
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="h-4" />
-
-      {/* ── BOTTOM NAV ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50"
-        style={{
-          background: 'rgba(7,11,20,0.97)',
-          backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-        }}>
-        <div className="flex items-center justify-around py-2 px-1">
-          {NAV_TABS.map((tab) => {
-            const active = tab.path === '/';
-            return (
-              <button
-                key={tab.label}
-                onClick={() => navigate(tab.path)}
-                className="flex flex-col items-center justify-center gap-0.5 py-1.5 px-3 rounded-xl transition-all active:scale-90"
-                style={{ background: active ? 'rgba(0,240,255,0.08)' : 'transparent' }}
-              >
-                <span className="text-lg leading-none">{tab.emoji}</span>
-                <span className="text-[9px] font-black uppercase tracking-wide"
-                  style={{ color: active ? '#00F0FF' : 'rgba(100,116,139,0.7)' }}>
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
     </div>
-  );
-          }
+
+    <!-- Gallery Preview -->
+    <div style="margin-top: 15px;">
+        <div class="section-header">
+            <span>GALLERY PREVIEW</span>
+            <a href="#" class="text-link">Open Gallery</a>
+        </div>
+        <div class="gallery-preview">
+            <img src="https://i.imgur.com/QXb6bZy.jpeg" class="gallery-img">
+            <img src="https://i.imgur.com/QXb6bZy.jpeg" class="gallery-img">
+            <img src="https://i.imgur.com/QXb6bZy.jpeg" class="gallery-img">
+            <img src="https://i.imgur.com/QXb6bZy.jpeg" class="gallery-img">
+        </div>
+    </div>
+              <!-- Fixed Bottom Navigation -->
+<nav class="bottom-nav">
+    <a href="#" class="nav-item active">
+        <span class="nav-icon">🏠</span>
+        <span>Home</span>
+    </a>
+    <a href="#" class="nav-item">
+        <span class="nav-icon">👥</span>
+        <span>Friends</span>
+    </a>
+    <a href="#" class="nav-item">
+        <span class="nav-icon">🏆</span>
+        <span>Leaderboard</span>
+    </a>
+    <a href="#" class="nav-item">
+        <span class="nav-icon">🖼️</span>
+        <span>Gallery</span>
+    </a>
+    <a href="#" class="nav-item">
+        <span class="nav-icon">⚙️</span>
+        <span>Admin</span>
+    </a>
+</nav>
+
+</body>
+</html>
