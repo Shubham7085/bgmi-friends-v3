@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 import {
   MapPin, Heart, ChevronRight, Instagram,
-  Users, Trophy, Image, BarChart2, Settings,
+  Users, Trophy, Image, BarChart2, Settings, Share2, Menu,
+  CheckCircle2, Star, Crosshair, Skull, Award, Zap,
 } from 'lucide-react';
 import { getProfile, getSocialLinks, getFriends, getGallery, getSettings } from '../data/firebaseService';
 import type { PartnerData } from '../types';
@@ -12,21 +13,7 @@ import { staggerContainer, fadeInUp } from '../utils/animations';
 import { useNavigate } from 'react-router-dom';
 import { getKdColor, getKdDot, formatKd } from '../utils/kdColor';
 
-// ── CONSTANTS ──────────────────────────────────────────────
-const quickActions = [
-  { label: 'All Friends',  icon: Users,    path: '/friends',     color: '#00F0FF' },
-  { label: 'Top 10',       icon: Trophy,   path: '/leaderboard', color: '#FFD700' },
-  { label: 'Gallery',      icon: Image,    path: '/gallery',     color: '#FF6B6B' },
-  { label: 'Statistics',   icon: BarChart2,path: '/statistics',  color: '#A855F7' },
-];
-
-const BADGE_MAP: Record<string, { label: string; icon: string; color: string }> = {
-  verified: { label: 'Verified',  icon: '✔',  color: '#3B82F6' },
-  elite:    { label: 'Elite',     icon: '👑', color: '#FFD700' },
-  partner:  { label: 'Partner',   icon: '❤️', color: '#F43F5E' },
-  popular:  { label: 'Popular',   icon: '⭐', color: '#A855F7' },
-};
-
+// ── NAV ────────────────────────────────────────────────────
 const NAV_TABS = [
   { label: 'Home',        emoji: '🏠', path: '/' },
   { label: 'Friends',     emoji: '👥', path: '/friends' },
@@ -35,7 +22,25 @@ const NAV_TABS = [
   { label: 'Admin',       emoji: '⚙️', path: '/admin' },
 ];
 
-// ── UTILS ──────────────────────────────────────────────────
+// ── BADGE MAP ───────────────────────────────────────────────
+const BADGE_MAP: Record<string, { label: string; icon: string; color: string; border: string; bg: string }> = {
+  verified: { label: 'Verified Player', icon: '✔', color: '#3B82F6', border: 'rgba(59,130,246,0.4)',  bg: 'rgba(59,130,246,0.12)' },
+  elite:    { label: 'Elite Player',    icon: '👑', color: '#FFD700', border: 'rgba(255,215,0,0.4)',   bg: 'rgba(255,215,0,0.12)'  },
+  partner:  { label: 'Partner',         icon: '❤️', color: '#F43F5E', border: 'rgba(244,63,94,0.4)',   bg: 'rgba(244,63,94,0.12)'  },
+  popular:  { label: 'Popular Player',  icon: '⭐', color: '#A855F7', border: 'rgba(168,85,247,0.4)',  bg: 'rgba(168,85,247,0.12)' },
+};
+
+// ── ACHIEVEMENTS DATA ───────────────────────────────────────
+const ACHIEVEMENTS = [
+  { label: 'WELL-LIKED',      icon: '💜', color: '#EC4899', points: 1000 },
+  { label: 'BATTLE-HARDENED', icon: '⚔️', color: '#FFD700', points: 500  },
+  { label: 'WEAPON MASTER',   icon: '🔫', color: '#EF4444', points: 200  },
+  { label: 'HEADSHOT MASTER', icon: '💀', color: '#3B82F6', points: 300  },
+  { label: 'CHICKEN EXPERT',  icon: '🍗', color: '#10B981', points: 100  },
+  { label: 'SYNC LEGEND',     icon: '⭐', color: '#A855F7', points: 50   },
+];
+
+// ── UTILS ───────────────────────────────────────────────────
 function calcAnniversary(since: string) {
   if (!since) return null;
   const diff = Date.now() - new Date(since).getTime();
@@ -50,22 +55,7 @@ function calcAnniversary(since: string) {
   };
 }
 
-// ── SECTION HEADER ─────────────────────────────────────────
-function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <div className="w-[3px] h-4 rounded-full" style={{ background: 'linear-gradient(180deg,#00F0FF,#A855F7)' }} />
-        <span className="text-[11px] font-black text-white uppercase tracking-[0.12em]">{title}</span>
-      </div>
-      {action && (
-        <button onClick={onAction} className="text-[10px] font-bold" style={{ color: '#00F0FF' }}>{action} →</button>
-      )}
-    </div>
-  );
-}
-
-// ── PARTNER SECTION ────────────────────────────────────────
+// ── PARTNER SECTION ─────────────────────────────────────────
 const PartnerSection = memo(function PartnerSection({ partner }: { partner: PartnerData }) {
   const [counter, setCounter] = useState(() => calcAnniversary(partner?.playingTogetherSince));
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -83,148 +73,134 @@ const PartnerSection = memo(function PartnerSection({ partner }: { partner: Part
 
   return (
     <motion.div
-      className="px-4 mt-4"
+      className="mx-4 mt-3 rounded-2xl p-4 relative overflow-hidden"
+      style={{
+        background: 'rgba(13,15,28,0.95)',
+        border: '1px solid rgba(244,63,94,0.3)',
+        boxShadow: '0 0 30px rgba(244,63,94,0.07)',
+      }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.35, duration: 0.4 }}
+      transition={{ delay: 0.3 }}
     >
-      <div
-        className="rounded-2xl p-4 relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg,rgba(244,63,94,0.09),rgba(168,85,247,0.06),rgba(10,14,26,0.98))',
-          border: '1px solid rgba(244,63,94,0.3)',
-          boxShadow: '0 4px 24px rgba(244,63,94,0.08)',
-        }}
-      >
-        {/* bg glow */}
-        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle,rgba(244,63,94,0.18),transparent 70%)', filter: 'blur(18px)' }} />
+      {/* header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Heart className="w-4 h-4 fill-[#F43F5E] text-[#F43F5E]" />
+          <span className="text-xs font-black text-[#F43F5E] tracking-widest uppercase">Partner</span>
+        </div>
+        <span className="text-[10px] px-2.5 py-1 rounded-full font-black"
+          style={{ background: 'rgba(255,215,0,0.15)', border: '1px solid rgba(255,215,0,0.3)', color: '#FFD700' }}>
+          👑 Elite Partner
+        </span>
+      </div>
 
-        {/* header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1.5">
-            <Heart className="w-3.5 h-3.5 fill-[#F43F5E] text-[#F43F5E]" />
-            <span className="text-[10px] font-black text-[#F43F5E] tracking-widest uppercase">Gaming Partner</span>
+      {/* body */}
+      <div className="flex items-center gap-3">
+        {/* avatar with pink ring */}
+        <div className="relative flex-shrink-0">
+          <div className="w-16 h-16 rounded-full overflow-hidden"
+            style={{ border: '2.5px solid #F43F5E', boxShadow: '0 0 16px rgba(244,63,94,0.5), 0 0 32px rgba(244,63,94,0.2)' }}>
+            {partner.photo
+              ? <img src={partner.photo} alt={partner.name} className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center font-black text-xl text-white"
+                  style={{ background: 'linear-gradient(135deg,#3a0015,#1a000a)' }}>
+                  {partner.name?.[0] ?? '?'}
+                </div>
+            }
           </div>
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-black"
-            style={{ background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.28)', color: '#FFD700' }}>
-            👑 Elite Partner
+          <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-[#0d0f1c]"
+            style={{ background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.8)' }} />
+        </div>
+
+        {/* name + uid + lover */}
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-black text-white truncate">{partner.name || '—'}</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">UID: {partner.uid || '—'}</p>
+          <span className="mt-1 inline-block text-[9px] px-2 py-0.5 rounded-full font-bold"
+            style={{ background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', color: '#F43F5E' }}>
+            Lover
           </span>
         </div>
 
-        {/* info row */}
-        <div className="flex items-center gap-3">
-          {/* avatar */}
-          <div className="relative flex-shrink-0">
-            <div className="w-14 h-14 rounded-xl overflow-hidden"
-              style={{ border: '2px solid rgba(244,63,94,0.45)', boxShadow: '0 0 14px rgba(244,63,94,0.25)' }}>
-              {partner.photo
-                ? <img src={partner.photo} alt={partner.name} className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center text-white font-black text-xl"
-                    style={{ background: 'linear-gradient(135deg,#1a0510,#2a0820)' }}>
-                    {partner.name?.[0] ?? '?'}
-                  </div>
-              }
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#070B14]"
-              style={{ background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.7)' }} />
+        {/* KD + SYN boxes */}
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          <div className="px-3 py-2 rounded-xl text-center"
+            style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.25)' }}>
+            <p className="text-sm font-black" style={{ color: '#F43F5E' }}>{formatKd(kd)}+</p>
+            <p className="text-[8px] text-slate-400 font-bold uppercase">KD</p>
           </div>
-
-          {/* details */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white truncate">{partner.name || '—'}</p>
-            <p className="text-[9px] text-slate-500 font-mono mt-0.5">UID: {partner.uid || '—'}</p>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
-                style={{ background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.25)', color: '#F43F5E' }}>❤️ Lover</span>
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black"
-                style={{ background: `${kdColor}18`, border: `1px solid ${kdColor}35`, color: kdColor }}>
-                {getKdDot(kd)} {formatKd(kd)} KD
-              </span>
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
-                style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)', color: '#A855F7' }}>
-                ⚡ {partner.synergy ?? 0}+ SYN
-              </span>
-            </div>
+          <div className="px-3 py-2 rounded-xl text-center"
+            style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.25)' }}>
+            <p className="text-sm font-black" style={{ color: '#F43F5E' }}>{partner.synergy ?? 0}+</p>
+            <p className="text-[8px] text-slate-400 font-bold uppercase">SYN</p>
           </div>
         </div>
-
-        {/* timer */}
-        {counter && partner.playingTogetherSince && (
-          <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-[9px] text-center text-slate-500 mb-2 uppercase tracking-wider">
-              Together since {partner.playingTogetherSince}
-            </p>
-            <div className="grid grid-cols-4 gap-1.5">
-              {[['YRS', counter.years], ['MON', counter.months], ['DAYS', counter.days], ['HRS', counter.hours]].map(([l, v]) => (
-                <div key={String(l)} className="py-2 rounded-xl text-center"
-                  style={{ background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.15)' }}>
-                  <p className="text-sm font-black text-[#F43F5E]">{v}</p>
-                  <p className="text-[7px] text-slate-500 uppercase tracking-wider">{l}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-[9px] text-center text-[#F43F5E]/70 mt-2 font-bold">{counter.totalDays}+ days together ❤️</p>
-          </div>
-        )}
       </div>
+
+      {/* timer */}
+      {counter && partner.playingTogetherSince && (
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <p className="text-[9px] text-center text-slate-500 mb-2 uppercase tracking-wider">
+            Playing Together Since {partner.playingTogetherSince}
+          </p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {[['YRS', counter.years], ['MON', counter.months], ['DAYS', counter.days], ['HRS', counter.hours]].map(([l, v]) => (
+              <div key={String(l)} className="py-2 rounded-xl text-center"
+                style={{ background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.15)' }}>
+                <p className="text-sm font-black text-[#F43F5E]">{v}</p>
+                <p className="text-[7px] text-slate-500 uppercase tracking-wider">{l}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[9px] text-center text-[#F43F5E]/60 mt-2 font-bold">{counter.totalDays}+ days together ❤️</p>
+        </div>
+      )}
     </motion.div>
   );
 });
 
-// ── FRIEND CARD ────────────────────────────────────────────
+// ── ACHIEVEMENT HEXAGON ─────────────────────────────────────
+function AchievementBadge({ ach }: { ach: typeof ACHIEVEMENTS[0] }) {
+  return (
+    <div className="flex flex-col items-center flex-shrink-0 w-16">
+      <div className="relative w-14 h-14 flex items-center justify-center"
+        style={{
+          clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)',
+          background: `linear-gradient(135deg,${ach.color}22,${ach.color}44)`,
+          border: `1px solid ${ach.color}60`,
+          boxShadow: `0 0 12px ${ach.color}30`,
+        }}>
+        <span className="text-xl">{ach.icon}</span>
+      </div>
+      <p className="text-[7px] text-slate-300 font-black text-center mt-1 leading-tight">{ach.label}</p>
+      <p className="text-[8px] font-black mt-0.5" style={{ color: ach.color }}>{ach.points}</p>
+    </div>
+  );
+}
+
+// ── FRIEND CARD ─────────────────────────────────────────────
 const FriendCard = memo(function FriendCard({ friend }: { friend: any }) {
   const kd = friend?.kd ?? 0;
   const kdColor = getKdColor(kd);
   return (
-    <div className="flex-shrink-0 w-[84px] rounded-2xl p-2.5 text-center"
-      style={{ background: 'rgba(13,18,31,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}>
-      <div className="w-11 h-11 rounded-xl overflow-hidden mx-auto relative"
-        style={{ border: `2px solid ${kdColor}50`, boxShadow: `0 0 10px ${kdColor}25` }}>
+    <div className="flex flex-col items-center flex-shrink-0 w-20">
+      <div className="w-14 h-14 rounded-full overflow-hidden"
+        style={{ border: `2px solid ${kdColor}60`, boxShadow: `0 0 12px ${kdColor}30` }}>
         <img
           src={friend.photo || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200'}
           alt={friend.name}
           className="w-full h-full object-cover"
           loading="lazy"
         />
-        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-[#070B14]"
-          style={{ background: friend.online ? '#22c55e' : '#475569' }} />
       </div>
-      <p className="text-[9px] font-black text-slate-200 mt-1.5 truncate">{friend.name || '—'}</p>
-      <p className="text-[8px] font-bold" style={{ color: kdColor }}>{formatKd(kd)} KD</p>
+      <p className="text-[10px] font-black text-slate-200 mt-1.5 truncate w-full text-center">{friend.name || '—'}</p>
+      <p className="text-[9px] font-bold" style={{ color: kdColor }}>{formatKd(kd)}+ KD</p>
     </div>
   );
 });
 
-// ── GALLERY PREVIEW ────────────────────────────────────────
-const GalleryPreview = memo(function GalleryPreview({ images, onOpen }: { images: any[]; onOpen: () => void }) {
-  const preview = images.slice(0, 6);
-  if (!preview.length) return null;
-  return (
-    <div className="px-4 mt-5">
-      <SectionHeader title="Gallery Preview" action="Open Gallery" onAction={onOpen} />
-      <div className="grid grid-cols-3 gap-1.5">
-        {preview.map((img: any, i: number) => (
-          <div
-            key={img.id ?? i}
-            onClick={onOpen}
-            className="aspect-square rounded-xl overflow-hidden cursor-pointer"
-            style={{ border: '1px solid rgba(255,255,255,0.07)' }}
-          >
-            <img
-              src={img.url ?? img.src}
-              alt=""
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-});
-
-// ── MAIN PAGE ──────────────────────────────────────────────
+// ── MAIN ────────────────────────────────────────────────────
 export default function HomePage() {
   const [profile,  setProfile]  = useState<any>(null);
   const [social,   setSocial]   = useState<any>(null);
@@ -247,12 +223,10 @@ export default function HomePage() {
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#070B14] flex flex-col items-center justify-center gap-3">
-      <div className="w-11 h-11 rounded-full animate-spin"
-        style={{ border: '3px solid rgba(0,240,255,0.12)', borderTopColor: '#00F0FF' }} />
-      <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: 'rgba(0,240,255,0.5)' }}>
-        Loading Vault...
-      </p>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3" style={{ background: '#070B14' }}>
+      <div className="w-10 h-10 rounded-full animate-spin"
+        style={{ border: '3px solid rgba(0,240,255,0.1)', borderTopColor: '#00F0FF' }} />
+      <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: 'rgba(0,240,255,0.5)' }}>Loading Vault...</p>
     </div>
   );
 
@@ -270,341 +244,310 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen text-white font-sans overflow-x-hidden pb-28" style={{ background: '#070B14' }}>
+    <div className="min-h-screen text-white font-sans overflow-x-hidden pb-24" style={{ background: '#070B14' }}>
 
-      {/* ─── TOP BAR ─────────────────────────────────── */}
+      {/* ── TOP BAR ── */}
       <div className="sticky top-0 z-50 px-4 py-3 flex items-center justify-between"
-        style={{ background: 'rgba(7,11,20,0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(0,240,255,0.07)' }}>
+        style={{ background: 'rgba(7,11,20,0.95)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <button className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+          <Menu className="w-5 h-5 text-slate-400" />
+        </button>
         <div className="flex items-center gap-2">
-          <span className="text-lg">🛡️</span>
-          <span className="text-xs font-black tracking-[0.22em]" style={{ color: '#00F0FF' }}>BGMI VAULT</span>
+          <span className="text-base">🛡️</span>
+          <span className="text-sm font-black tracking-[0.15em]" style={{ color: '#00F0FF' }}>BGMI VAULT</span>
         </div>
-        <button onClick={() => navigate('/admin')} className="p-1.5 rounded-lg"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Settings className="w-4 h-4 text-slate-400" />
+        <button className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+          <Share2 className="w-4 h-4 text-slate-400" />
         </button>
       </div>
 
-      {/* ─── HERO BANNER ─────────────────────────────── */}
-      <div className="relative w-full h-44 overflow-hidden">
-        {/* bg image */}
-        <div className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: profile?.heroBackground
-              ? `url(${profile.heroBackground})`
-              : 'linear-gradient(135deg,#0a1628,#0d1f3c,#070B14)',
-          }} />
-        {/* strong dark overlay so content is always readable */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(7,11,20,0.55) 0%,rgba(7,11,20,0.75) 60%,#070B14 100%)' }} />
-        {/* subtle grid */}
-        <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
-          style={{ backgroundImage: 'linear-gradient(rgba(0,240,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,1) 1px,transparent 1px)', backgroundSize: '36px 36px' }} />
-
-        {/* online badge */}
-        <motion.div className="absolute top-3 left-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-          style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', backdropFilter: 'blur(8px)' }}
-          initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[9px] font-black text-green-400 uppercase tracking-wider">Online</span>
-        </motion.div>
-
-        {/* tier badge */}
-        {profile?.tier && (
-          <motion.div className="absolute top-3 right-4 px-2.5 py-1 rounded-full text-[9px] font-black"
-            style={{ background: 'rgba(255,159,67,0.15)', border: '1px solid rgba(255,159,67,0.35)', color: '#FF9F43', backdropFilter: 'blur(8px)' }}
-            initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-            ⚔️ {profile.tier}
-          </motion.div>
+      {/* ── HERO SECTION ── */}
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg,#0a1628 0%,#070B14 100%)' }}>
+        {/* bg image overlay */}
+        {profile?.heroBackground && (
+          <div className="absolute inset-0 bg-cover bg-center opacity-20"
+            style={{ backgroundImage: `url(${profile.heroBackground})` }} />
         )}
-      </div>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(7,11,20,0.4),rgba(7,11,20,0.85) 80%,#070B14)' }} />
 
-      {/* ─── MAIN PROFILE CARD ───────────────────────── */}
-      <div className="px-4 -mt-8 relative z-10">
-        <motion.div
-          className="rounded-3xl p-5 relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(145deg,rgba(0,240,255,0.05) 0%,rgba(10,14,26,0.97) 50%,rgba(168,85,247,0.04) 100%)',
-            border: '1px solid rgba(0,240,255,0.16)',
-            boxShadow: '0 0 0 1px rgba(0,240,255,0.04),0 8px 40px rgba(0,0,0,0.6)',
-          }}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-        >
-          {/* corner glow */}
-          <div className="absolute top-0 right-0 w-44 h-44 pointer-events-none"
-            style={{ background: 'radial-gradient(circle at top right,rgba(0,240,255,0.07),transparent 65%)' }} />
-
-          {/* ── Avatar + name ── */}
+        <div className="relative z-10 px-4 pt-5 pb-6">
           <div className="flex items-start gap-4">
-            {/* spinning ring avatar */}
-            <div className="relative flex-shrink-0 w-20 h-20">
-              {/* animated ring */}
-              <motion.div
-                className="absolute -inset-[2px] rounded-2xl"
-                style={{ background: 'conic-gradient(from 0deg,#00F0FF,#A855F7,#FFD700,#00F0FF)' }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
-              />
-              {/* inner mask */}
-              <div className="absolute inset-[2px] rounded-[14px] z-10 overflow-hidden" style={{ background: '#070B14' }}>
+
+            {/* ── AVATAR with golden frame ── */}
+            <div className="relative flex-shrink-0">
+              {/* golden glow ring */}
+              <div className="absolute -inset-1 rounded-2xl"
+                style={{ background: 'linear-gradient(135deg,#FFD700,#FF8C00,#FFD700)', padding: '2px', borderRadius: '18px', boxShadow: '0 0 20px rgba(255,215,0,0.5), 0 0 40px rgba(255,140,0,0.3)' }} />
+              <div className="relative w-24 h-24 rounded-2xl overflow-hidden z-10" style={{ margin: '2px' }}>
                 <img
                   src={profile?.profilePhoto || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=300'}
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
               </div>
+              {/* crown above */}
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-base z-20">👑</div>
               {/* online dot */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full z-20 border-2 border-[#070B14]"
-                style={{ background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-[#070B14] z-20"
+                style={{ background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,0.8)' }} />
             </div>
 
-            {/* name block */}
+            {/* ── NAME + BADGES ── */}
             <div className="flex-1 min-w-0 pt-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className="text-[22px] font-black leading-tight tracking-wide"
-                  style={{ background: 'linear-gradient(90deg,#fff 30%,#00F0FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  {profile?.ign || 'D3xSHUBHAM'}
-                </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-black tracking-wide text-white leading-none">{profile?.ign || 'D3xSHUBHAM'}</h1>
                 {badges.includes('verified') && (
-                  <span className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[8px] font-black flex-shrink-0"
-                    style={{ background: '#2563EB', boxShadow: '0 0 8px rgba(37,99,235,0.6)' }}>✔</span>
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: '#2563EB', boxShadow: '0 0 8px rgba(37,99,235,0.7)' }}>
+                    <span className="text-[9px] text-white font-black">✔</span>
+                  </div>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 font-medium mt-0.5">{profile?.realName || 'SHUBHAM KUMAR NAGVANSHI'}</p>
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <span className="text-[9px] font-black font-mono px-2 py-[3px] rounded-lg"
-                  style={{ background: 'rgba(0,240,255,0.1)', border: '1px solid rgba(0,240,255,0.22)', color: '#00F0FF' }}>
-                  #{profile?.bgmiId || '5305051851'}
+              <p className="text-xs text-slate-300 mt-0.5 font-medium">{profile?.realName || 'SHUBHAM KUMAR NAGVANSHI'}</p>
+
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className="text-[10px] font-black font-mono px-2 py-0.5 rounded-lg"
+                  style={{ background: 'rgba(0,240,255,0.12)', border: '1px solid rgba(0,240,255,0.3)', color: '#00F0FF' }}>
+                  ID: {profile?.bgmiId || '5305051851'}
                 </span>
-                <span className="text-[9px] text-slate-500 flex items-center gap-0.5">
-                  <MapPin className="w-2.5 h-2.5" />
-                  {profile?.state || 'Bihar'}, {profile?.country || 'India'}
+                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />{profile?.country || 'INDIA'}
+                </span>
+              </div>
+
+              {/* badges row */}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {badges.map((badge: string) => {
+                  const b = BADGE_MAP[badge];
+                  if (!b) return null;
+                  return (
+                    <span key={badge} className="text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"
+                      style={{ color: b.color, background: b.bg, border: `1px solid ${b.border}` }}>
+                      {b.icon} {b.label}
+                    </span>
+                  );
+                })}
+                {/* always show mythic + conqueror */}
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                  style={{ color: '#FF6B6B', background: 'rgba(255,107,107,0.12)', border: '1px solid rgba(255,107,107,0.3)' }}>
+                  👗 Mythic Fashion
                 </span>
               </div>
             </div>
-          </div>
 
-          {/* ── KD bar ── */}
-          <div className="mt-4 rounded-2xl p-3 flex items-center gap-4"
-            style={{ background: `${kdColor}0C`, border: `1px solid ${kdColor}28` }}>
-            <div className="flex-1">
-              <p className="text-[8px] text-slate-500 uppercase tracking-[0.14em] font-bold">Kill / Death Ratio</p>
-              <p className="text-[28px] font-black leading-none mt-0.5" style={{ color: kdColor }}>{formatKd(kd)}</p>
-            </div>
-            <div className="w-px h-10 bg-white/5" />
-            <div className="flex-1 text-right">
-              <p className="text-[8px] text-slate-500 uppercase tracking-[0.14em] font-bold">Playing Since</p>
-              <p className="text-sm font-black text-slate-200 mt-0.5">{profile?.playingSince || '8 YEARS'}</p>
-            </div>
-          </div>
-{/* ── Badges ── */}
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {badges.map((badge: string) => {
-              const b = BADGE_MAP[badge];
-              if (!b) return null;
-              return (
-                <span key={badge} className="text-[9px] px-2 py-0.5 rounded-full font-black"
-                  style={{ color: b.color, background: `${b.color}14`, border: `1px solid ${b.color}30` }}>
-                  {b.icon} {b.label}
-                </span>
-              );
-            })}
-            <span className="text-[9px] px-2 py-0.5 rounded-full font-black"
-              style={{ color: '#FF6B6B', background: 'rgba(255,107,107,0.12)', border: '1px solid rgba(255,107,107,0.28)' }}>
-              👗 Mythic Fashion
-            </span>
-            <span className="text-[9px] px-2 py-0.5 rounded-full font-black"
-              style={{ color: '#FFD700', background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.28)' }}>
-              🏆 Conqueror
-            </span>
-          </div>
-
-          {/* ── About ── */}
-          {profile?.bio && (
-            <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: '#00F0FF' }}>About Me</p>
-              <p className="text-[11px] text-slate-400 leading-relaxed">{profile.bio}</p>
-            </div>
-          )}
-
-          {/* ── Stat pills ── */}
-          <div className="flex gap-2 mt-4">
-            {[
-              { label: 'Collection', value: `${profile?.collectionLevel || 71}+`,  color: '#A855F7' },
-              { label: 'Acct Lvl',   value: `${profile?.accountLevel  || 91}+`,    color: '#00F0FF' },
-              { label: 'Popularity', value: profile?.popularity ? `${Math.round(Number(profile.popularity)/1000)}K` : '2268K', color: '#FFD700' },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="flex-1 py-2 rounded-xl text-center"
-                style={{ background: `${color}0C`, border: `1px solid ${color}22` }}>
-                <p className="text-[8px] text-slate-500 uppercase font-bold tracking-wider">{label}</p>
-                <p className="text-sm font-black mt-0.5" style={{ color }}>{value}</p>
+            {/* ── TIER BADGE (right) ── */}
+            <div className="flex-shrink-0 flex flex-col items-center pt-1">
+              <div className="text-3xl">🪖</div>
+              <p className="text-[9px] font-black text-center mt-1 uppercase leading-tight"
+                style={{ color: '#FFD700', textShadow: '0 0 8px rgba(255,215,0,0.6)' }}>
+                {profile?.tier || 'ACE\nDOMINATOR'}
+              </p>
+              <div className="flex items-center gap-0.5 mt-1">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <span className="text-[10px] font-black text-yellow-400">{profile?.tierStars || 22}</span>
               </div>
-            ))}
+            </div>
           </div>
-
-          {/* ── Instagram ── */}
-          <a
-            href={social?.instagram || 'https://instagram.com/shubhamnagvanshi84823'}
-            target="_blank" rel="noreferrer"
-            className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-black active:scale-95 transition-transform"
-            style={{ background: 'linear-gradient(90deg,rgba(244,63,94,0.14),rgba(168,85,247,0.14))', border: '1px solid rgba(244,63,94,0.28)', color: '#F472B6' }}
-          >
-            <Instagram className="w-3.5 h-3.5" /> Follow on Instagram
-          </a>
-        </motion.div>
+        </div>
       </div>
 
-      {/* ─── PARTNER ─────────────────────────────────── */}
+      {/* ── PARTNER ── */}
       <PartnerSection partner={profile?.partner} />
 
-      {/* ─── VAULT STATS ─────────────────────────────── */}
-      <motion.div className="px-4 mt-5" variants={staggerContainer} initial="hidden" animate="visible">
-        <SectionHeader title="Vault Stats" />
+      {/* ── VAULT STATS 3-col ── */}
+      <div className="px-4 mt-3">
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: 'Friends',   value: `${stats.totalFriends}+`,   color: '#00F0FF' },
-            { label: 'Total SYN', value: `${stats.totalSynergy}+`,   color: '#FF6B6B' },
-            { label: 'Avg SYN',   value: stats.avgSynergy,           color: '#FFD700' },
-            { label: 'Coll Avg',  value: stats.collectionAvg,        color: '#A855F7' },
-            { label: 'Memories',  value: stats.totalMemories,        color: '#4ECDC4' },
-            { label: 'Peak SYN',  value: stats.highestSynergy,       color: '#00E5FF' },
-          ].map((s, i) => (
-            <motion.div key={s.label} className="py-3 rounded-2xl text-center"
-              style={{ background: `${s.color}09`, border: `1px solid ${s.color}1E` }}
-              variants={fadeInUp} custom={i}>
-              <p className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">{s.label}</p>
-              <p className="text-base font-black mt-0.5" style={{ color: s.color }}>{s.value}</p>
-            </motion.div>
+            { icon: '👥', label: 'FRIENDS',       value: `${stats.totalFriends}+`,   color: '#00F0FF' },
+            { icon: '❤️',  label: 'TOTAL SYNERGY', value: `${stats.totalSynergy}+`,   color: '#F43F5E' },
+            { icon: '🏅', label: 'AVG SYNERGY',   value: `${stats.avgSynergy}+`,     color: '#FFD700' },
+            { icon: '💠', label: 'COLL. AVG',     value: `${stats.collectionAvg}+`,  color: '#A855F7' },
+            { icon: '🖼️',  label: 'MEMORIES',      value: `${stats.totalMemories}+`,  color: '#4ECDC4' },
+            { icon: '🏆', label: 'HIGHEST SYN',   value: `${stats.highestSynergy}+`, color: '#00E5FF' },
+          ].map((s) => (
+            <div key={s.label}
+              className="rounded-xl p-3"
+              style={{ background: 'rgba(13,15,28,0.9)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-sm">{s.icon}</span>
+                <p className="text-[7px] text-slate-500 uppercase tracking-wider font-bold">{s.label}</p>
+              </div>
+              <p className="text-base font-black" style={{ color: s.color }}>{s.value}</p>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
-      {/* ─── PROFILE DETAILS ─────────────────────────── */}
-      <div className="px-4 mt-5">
-        <SectionHeader title="Profile Details" />
-        <div className="rounded-2xl p-4" style={{ background: 'rgba(10,14,26,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="grid grid-cols-2 gap-y-4 gap-x-4">
+{/* ── PROFILE DETAILS ── */}
+      <div className="mx-4 mt-3 rounded-2xl p-4"
+        style={{ background: 'rgba(13,15,28,0.95)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sm">⚔️</span>
+          <p className="text-xs font-black text-white uppercase tracking-widest">Profile Details</p>
+        </div>
+        <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+          {[
+            { label: 'COLLECTION LEVEL',  value: `${profile?.collectionLevel || 71}+`,           color: '#A855F7' },
+            { label: 'ACCOUNT LEVEL',     value: `${profile?.accountLevel || 91}+`,              color: '#00F0FF' },
+            { label: 'POPULARITY',        value: `${profile?.popularity || '2267874'}+`,         color: '#FFD700' },
+            { label: 'LIKES',             value: `${profile?.likes || '26868'}+`,                color: '#F43F5E' },
+            { label: 'MATCHES',           value: `${profile?.matches || 0}+`,                    color: '#00E5FF' },
+            { label: 'ACHIEVEMENT POINTS',value: `${profile?.achievementPoints || 0}+`,          color: '#4ECDC4' },
+            { label: 'CURRENT TIER',      value: profile?.tier || 'Ace Dominator',               color: '#FF9F43' },
+            { label: 'HIGHEST TIER',      value: profile?.highestTier || 'Ace Dominator',        color: '#FF9F43' },
+            { label: 'PLAYING SINCE',     value: profile?.playingSince || '8 YEARS',             color: '#10B981' },
+            { label: 'STATE',             value: profile?.state || 'BIHAR',                      color: '#6366F1' },
+            { label: 'COUNTRY',           value: profile?.country || 'INDIA',                    color: '#F59E0B' },
+            { label: 'KD RATIO',          value: formatKd(kd),                                   color: kdColor   },
+          ].map((item) => (
+            <div key={item.label} className="min-w-0">
+              <p className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">{item.label}</p>
+              <p className="text-[12px] font-black mt-0.5 truncate" style={{ color: item.color }}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── ACHIEVEMENTS ── */}
+      <div className="mx-4 mt-3 rounded-2xl p-4"
+        style={{ background: 'rgba(13,15,28,0.95)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-black text-white uppercase tracking-widest">Achievements</p>
+          <button className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: '#00F0FF' }}>
+            View All <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
+          {ACHIEVEMENTS.map((ach) => (
+            <AchievementBadge key={ach.label} ach={ach} />
+          ))}
+        </div>
+      </div>
+
+      {/* ── QUICK ACTIONS + FEATURED FRIENDS (side by side) ── */}
+      <div className="px-4 mt-3 grid grid-cols-2 gap-3">
+
+        {/* Quick Actions */}
+        <div className="rounded-2xl p-3"
+          style={{ background: 'rgba(13,15,28,0.95)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <p className="text-[10px] font-black text-white uppercase tracking-widest mb-2.5">Quick Actions</p>
+          <div className="grid grid-cols-2 gap-2">
             {[
-              { label: 'Current Tier',   value: profile?.tier             || 'Ace Dominator', color: '#FF9F43' },
-              { label: 'Highest Tier',   value: profile?.highestTier      || 'Ace Dominator', color: '#FF5252' },
-              { label: 'Collection Lvl', value: `${profile?.collectionLevel || 71}+`,         color: '#A855F7' },
-              { label: 'Account Level',  value: `${profile?.accountLevel   || 91}+`,          color: '#00F0FF' },
-              { label: 'Popularity',     value: `${profile?.popularity     || '2267874'}+`,   color: '#FFD700' },
-              { label: 'Achieve. Pts',   value: `${profile?.achievementPoints || 0}+`,        color: '#4ECDC4' },
-              { label: 'Total Matches',  value: `${profile?.matches        || 0}+`,           color: '#00E5FF' },
-              { label: 'Playing Since',  value: profile?.playingSince      || '8 YEARS',      color: '#10B981' },
-              { label: 'State',          value: profile?.state             || 'BIHAR',        color: '#6366F1' },
-              { label: 'Country',        value: profile?.country           || 'INDIA',        color: '#F59E0B' },
-            ].map((item) => (
-              <div key={item.label} className="min-w-0">
-                <p className="text-[8px] text-slate-600 uppercase tracking-wider font-black">{item.label}</p>
-                <p className="text-[11px] font-black mt-0.5 truncate" style={{ color: item.color }}>{item.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ─── QUICK ACTIONS ───────────────────────────── */}
-      <div className="px-4 mt-5">
-        <SectionHeader title="Quick Actions" />
-        <div className="grid grid-cols-2 gap-2.5">
-          {quickActions.map((action, i) => (
-            <motion.button
-              key={action.label}
-              onClick={() => navigate(action.path)}
-              className="rounded-2xl p-4 text-left flex flex-col gap-3 relative overflow-hidden active:scale-95 transition-transform h-[86px]"
-              style={{ background: `${action.color}09`, border: `1px solid ${action.color}22` }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-            >
-              {/* icon */}
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: `${action.color}16`, border: `1px solid ${action.color}28` }}>
-                <action.icon className="w-4 h-4" style={{ color: action.color }} />
-              </div>
-              {/* label + arrow */}
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-black text-slate-200">{action.label}</p>
-                <ChevronRight className="w-3.5 h-3.5" style={{ color: action.color }} />
-              </div>
-              {/* corner glow */}
-              <div className="absolute -bottom-5 -right-5 w-16 h-16 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle,${action.color}18,transparent 70%)` }} />
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── FEATURED FRIENDS ────────────────────────── */}
-      {friends.length > 0 && (
-        <div className="mt-5">
-          <div className="px-4">
-            <SectionHeader title="Featured Friends" action="View All" onAction={() => navigate('/friends')} />
-          </div>
-          <div className="flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none">
-            {friends.slice(0, 8).map((friend: any, idx: number) => (
-              <motion.div
-                key={friend.id ?? idx}
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.06 }}
+              { label: 'All Friends', icon: Users,    path: '/friends',     color: '#00F0FF' },
+              { label: 'Top 10',      icon: Trophy,   path: '/leaderboard', color: '#FFD700' },
+              { label: 'Gallery',     icon: Image,    path: '/gallery',     color: '#FF6B6B' },
+              { label: 'Statistics',  icon: BarChart2,path: '/statistics',  color: '#A855F7' },
+            ].map((action) => (
+              <button
+                key={action.label}
+                onClick={() => navigate(action.path)}
+                className="rounded-xl p-2 flex flex-col items-start gap-1.5 active:scale-95 transition-transform"
+                style={{ background: `${action.color}0C`, border: `1px solid ${action.color}22` }}
               >
-                <FriendCard friend={friend} />
-              </motion.div>
+                <action.icon className="w-4 h-4" style={{ color: action.color }} />
+                <p className="text-[9px] font-black text-slate-300 leading-tight">{action.label}</p>
+              </button>
             ))}
-            {/* View All tile */}
-            <button
-              onClick={() => navigate('/friends')}
-              className="flex-shrink-0 w-[84px] rounded-2xl flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform"
-              style={{ background: 'rgba(0,240,255,0.05)', border: '1px dashed rgba(0,240,255,0.22)' }}
-            >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,240,255,0.1)' }}>
-                <ChevronRight className="w-4 h-4 text-[#00F0FF]" />
-              </div>
-              <p className="text-[8px] font-black text-[#00F0FF]">View All</p>
+          </div>
+        </div>
+
+        {/* Featured Friends */}
+        <div className="rounded-2xl p-3"
+          style={{ background: 'rgba(13,15,28,0.95)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[10px] font-black text-white uppercase tracking-widest">Featured</p>
+            <button onClick={() => navigate('/friends')} className="text-[9px] font-bold" style={{ color: '#00F0FF' }}>View All</button>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {friends.slice(0, 2).map((friend: any, idx: number) => {
+              const fkd = friend?.kd ?? 0;
+              const fColor = getKdColor(fkd);
+              return (
+                <div key={friend.id ?? idx} className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
+                    style={{ border: `2px solid ${fColor}50` }}>
+                    <img src={friend.photo || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200'}
+                      alt={friend.name} className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-slate-200 truncate">{friend.name || '—'}</p>
+                    <p className="text-[9px] font-bold" style={{ color: fColor }}>{formatKd(fkd)}+ KD</p>
+                  </div>
+                </div>
+              );
+            })}
+            {/* View All button */}
+            <button onClick={() => navigate('/friends')}
+              className="w-full rounded-xl py-2 flex items-center justify-center mt-1"
+              style={{ background: 'rgba(0,240,255,0.07)', border: '1px dashed rgba(0,240,255,0.25)' }}>
+              <span className="text-[9px] font-black" style={{ color: '#00F0FF' }}>+ View All</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── GALLERY PREVIEW ── */}
+      {gallery.length > 0 && (
+        <div className="mx-4 mt-3 rounded-2xl p-4"
+          style={{ background: 'rgba(13,15,28,0.95)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-black text-white uppercase tracking-widest">Gallery</p>
+            <button onClick={() => navigate('/gallery')} className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: '#00F0FF' }}>
+              Open Gallery <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {gallery.slice(0, 6).map((img: any, i: number) => (
+              <div key={img.id ?? i} onClick={() => navigate('/gallery')}
+                className="aspect-square rounded-xl overflow-hidden cursor-pointer"
+                style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
+                <img src={img.url ?? img.src} alt="" className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* ─── GALLERY PREVIEW ─────────────────────────── */}
-      <GalleryPreview images={gallery} onOpen={() => navigate('/gallery')} />
+      {/* ── CONNECT ── */}
+      <div className="mx-4 mt-3 rounded-2xl p-4"
+        style={{ background: 'rgba(13,15,28,0.95)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <p className="text-[10px] font-black text-white uppercase tracking-widest mb-3">Connect</p>
+        <a
+          href={social?.instagram || 'https://instagram.com/shubhamnagvanshi84823'}
+          target="_blank" rel="noreferrer"
+          className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black active:scale-95 transition-transform"
+          style={{ background: 'linear-gradient(90deg,rgba(244,63,94,0.15),rgba(168,85,247,0.15))', border: '1px solid rgba(244,63,94,0.3)', color: '#F472B6' }}
+        >
+          <Instagram className="w-4 h-4" /> Instagram
+        </a>
+      </div>
 
-      {/* ─── BOTTOM NAV ──────────────────────────────── */}
-      <div
-        className="fixed bottom-4 left-4 right-4 z-50 rounded-2xl flex items-center justify-around py-2.5"
-        style={{
-          background: 'rgba(7,11,20,0.94)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(0,240,255,0.09)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.6),0 0 24px rgba(0,240,255,0.05)',
-        }}
-      >
-        {NAV_TABS.map((tab) => {
-          const active = tab.path === '/';
-          return (
-            <button
-              key={tab.label}
-              onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-90"
-              style={{
-                background: active ? 'rgba(0,240,255,0.1)' : 'transparent',
-                border:     active ? '1px solid rgba(0,240,255,0.2)' : '1px solid transparent',
-              }}
-            >
-              <span className="text-[15px] leading-none">{tab.emoji}</span>
-              <span className="text-[8px] font-black uppercase tracking-wide"
-                style={{ color: active ? '#00F0FF' : 'rgba(148,163,184,0.55)' }}>
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
+      <div className="h-4" />
+
+      {/* ── BOTTOM NAV ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50"
+        style={{ background: 'rgba(7,11,20,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center justify-around py-2 px-2">
+          {NAV_TABS.map((tab) => {
+            const active = tab.path === '/';
+            return (
+              <button
+                key={tab.label}
+                onClick={() => navigate(tab.path)}
+                className="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all active:scale-90"
+                style={{ background: active ? 'rgba(0,240,255,0.08)' : 'transparent' }}
+              >
+                <span className="text-lg leading-none">{tab.emoji}</span>
+                <span className="text-[9px] font-black uppercase tracking-wide"
+                  style={{ color: active ? '#00F0FF' : 'rgba(100,116,139,0.8)' }}>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
     </div>
   );
-        }
+                      }
