@@ -416,7 +416,7 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── MAIN PROFILE CARD ── */}
+{/* ── MAIN PROFILE CARD ── */}
       <div className="px-4 -mt-6 relative z-10">
         <motion.div
           className="rounded-3xl p-5 relative overflow-hidden"
@@ -752,4 +752,4 @@ export default function HomePage() {
 
     </div>
   );
-}
+                    }
