@@ -1,204 +1,481 @@
-import React from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FiInstagram, FiYoutube, FiAward, FiShield, FiZap, FiSettings } from 'react-icons/fi';
+import { MapPin, Calendar, Heart, Award, Target, ChevronRight, Instagram, Youtube, Facebook, MessageCircle, Swords, Star, Wifi, WifiOff } from 'lucide-react';
+import { getProfile, getSocialLinks, getFriends, getGallery, getSettings } from '../data/firebaseService';
+import type { ProfileData, SocialLinks, Friend, GalleryImage, SiteSettings, PartnerData } from '../types';
+import GlassCard from '../components/ui/GlassCard';
+import AnimatedCounter from '../components/ui/AnimatedCounter';
+import { staggerContainer, fadeInUp } from '../utils/animations';
+import { useNavigate } from 'react-router-dom';
+import { getKdColor, getKdDot, formatKd } from '../utils/kdColor';
 
-// 1. Safe Type mapping matching your existing project system
-interface HomeProps {
-  userProfile?: any;
-  partnerProfile?: any;
-  isAdmin?: boolean;
-  friends?: any[];
-}
+const quickActions = [
+{ label: 'All Friends', icon: UsersIcon, path: '/friends', color: '#00F0FF' },
+{ label: 'Top 10', icon: TrophyIcon, path: '/leaderboard', color: '#FFD700' },
+{ label: 'Gallery', icon: ImageIcon, path: '/gallery', color: '#FF6B6B' },
+{ label: 'Statistics', icon: BarChartIcon, path: '/statistics', color: '#4ECDC4' },
+];
 
-// 2. Main component definition matching default layout standards
-const Home: React.FC<HomeProps> = ({ userProfile, partnerProfile, isAdmin }) => {
-  
-  const myStats = {
-    ign: userProfile?.ign || "D3XSHUBHAM",
-    realName: userProfile?.realName || "SHUBHAM KUMAR NAGVANSHI",
-    bgmiId: userProfile?.bgmiId || "5557085848",
-    level: userProfile?.level || "78",
-    collectionLevel: userProfile?.collectionLevel || "65",
-    tier: userProfile?.tier || "Conqueror",
-    kd: userProfile?.kd || "5.24",
-    popularity: userProfile?.popularity || "1.2M",
-    about: userProfile?.about || "PUBG/BGMI Professional Player & Collector.",
-    instagram: userProfile?.instagram || "https://instagram.com/shubhamnagvanshi84823",
-    youtube: userProfile?.youtube || "#"
-  };
+function UsersIcon(p: any) { return ; }
+function TrophyIcon(p: any) { return ; }
+function ImageIcon(p: any) { return ; }
+function BarChartIcon(p: any) { return ; }
 
-  return (
-    <div className="min-h-screen bg-[#0a0c14] text-white font-sans relative overflow-x-hidden pb-16">
-      
-      {/* BGMI Lobby Background */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 fixed z-0"
-        style={{ backgroundImage: `url(${userProfile?.lobbyBg || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070'})` }}
-      />
-      
-      {/* Main Glassmorphism UI Content */}
-      <div className="relative z-10 container mx-auto px-4 pt-6 space-y-8 max-w-md md:max-w-3xl">
-        
-        {/* ==================== HOME PAGE HEADER ==================== */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center py-4 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 shadow-[0_0_15px_rgba(0,210,255,0.2)]"
-        >
-          <h1 className="text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#00d2ff] via-[#9d4edd] to-[#ffb703] uppercase">
-            BGMI Vault
-          </h1>
-          <p className="text-[10px] text-slate-400 tracking-widest mt-1">PREMIUM GAMING HUB</p>
-        </motion.div>
-
-        {/* ==================== MY PROFILE (MAIN ATTRACTION - SUPER PREMIUM) ==================== */}
-        <motion.section 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full relative rounded-3xl p-[2px] bg-gradient-to-b from-[#ffb703] via-[#00d2ff] to-[#9d4edd] shadow-[0_0_25px_rgba(255,183,3,0.4)] overflow-hidden"
-        >
-          <div className="bg-[#0b0f19]/90 backdrop-blur-xl rounded-[22px] p-6 relative">
-            
-            <div className="absolute top-4 right-4">
-              <span className="bg-gradient-to-r from-pink-600 to-purple-600 text-white text-[9px] font-black px-3 py-1 rounded-full border border-pink-400/40 tracking-wider shadow-[0_0_10px_rgba(219,39,119,0.5)]">
-                ★ MYTHIC FASHION
-              </span>
-            </div>
-
-            <div className="flex flex-col items-center text-center mt-4">
-              <div className="relative mb-4">
-                <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-[#ffb703] via-[#00d2ff] to-[#9d4edd] p-1 shadow-[0_0_20px_rgba(0,210,255,0.6)]">
-                  <img 
-                    src={userProfile?.avatarUrl || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964"} 
-                    alt="Shubham Avatar" 
-                    className="w-full h-full object-cover rounded-full bg-slate-900"
-                  />
-                </div>
-                <div className="absolute bottom-0 right-1 bg-gradient-to-r from-[#ffb703] to-yellow-600 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded-full border-2 border-[#0a0c14]">
-                  Lv.{myStats.level}
-                </div>
-              </div>
-
-              <h2 className="text-2xl font-black text-white tracking-wide uppercase drop-shadow-[0_2px_10px_rgba(0,212,255,0.5)]">
-                {myStats.ign}
-              </h2>
-              <p className="text-xs text-slate-400 font-bold tracking-widest mt-0.5">{myStats.realName}</p>
-              
-              <p className="text-xs text-[#00d2ff] font-mono mt-2 bg-[#00d2ff]/10 px-4 py-1 rounded-md border border-[#00d2ff]/20 tracking-wider">
-                ID: {myStats.bgmiId}
-              </p>
-            </div>
-
-            {/* Core Stats Grid Layout */}
-            <div className="grid grid-cols-3 gap-3 my-6">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center backdrop-blur-md shadow-[0_0_10px_rgba(0,210,255,0.15)]">
-                <p className="text-2xl font-black text-[#00d2ff] font-mono">{myStats.kd}</p>
-                <p className="text-[9px] text-slate-400 font-bold tracking-wider uppercase">K/D Ratio</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center backdrop-blur-md shadow-[0_0_15px_rgba(255,183,3,0.25)]">
-                <p className="text-lg font-black text-[#ffb703] pt-0.5 truncate">{myStats.tier}</p>
-                <p className="text-[9px] text-slate-400 font-bold tracking-wider uppercase">Tier</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center backdrop-blur-md shadow-[0_0_10px_rgba(157,78,221,0.15)]">
-                <p className="text-2xl font-black text-[#9d4edd] font-mono">{myStats.popularity}</p>
-                <p className="text-[9px] text-slate-400 font-bold tracking-wider uppercase">Popularity</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-slate-900/60 p-3 rounded-xl border border-white/5 text-center">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Collection Lv.</p>
-                <p className="text-base font-black text-slate-200">{myStats.collectionLevel}</p>
-              </div>
-              <div className="bg-slate-900/60 p-3 rounded-xl border border-white/5 text-center flex flex-col justify-center items-center">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Links</p>
-                <div className="flex space-x-4 text-base">
-                  <a href={myStats.instagram} target="_blank" rel="noreferrer" className="text-pink-500 hover:scale-120 transition-transform"><FiInstagram /></a>
-                  <a href={myStats.youtube} target="_blank" rel="noreferrer" className="text-red-500 hover:scale-120 transition-transform"><FiYoutube /></a>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-900/90 p-4 rounded-xl border border-white/10 relative mt-4">
-              <span className="absolute -top-2 left-4 bg-[#0b0f19] text-[#00d2ff] text-[8px] px-2 font-black tracking-widest border border-[#00d2ff]/30 rounded">ABOUT ME</span>
-              <p className="text-xs text-slate-300 italic text-center pt-1">{myStats.about}</p>
-            </div>
-
-          </div>
-        </motion.section>
-
-        {/* ==================== ACHIEVEMENTS BADGES SECTION ==================== */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="bg-[#0d121f]/75 backdrop-blur-md rounded-2xl p-5 border border-white/10 shadow-[0_0_15px_rgba(157,78,221,0.2)]"
-        >
-          <h3 className="text-sm font-black text-[#9d4edd] tracking-widest uppercase mb-4 flex items-center gap-2 border-b border-white/5 pb-2">
-            <FiShield /> SPECIAL VAULT ACHIEVEMENTS
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { name: '🏆 Conqueror Badge', style: 'text-[#ffb703] border-[#ffb703]/20 bg-[#ffb703]/5' },
-              { name: '⚡ Ace Badge', style: 'text-red-500 border-red-500/20 bg-red-500/5' },
-              { name: '🔥 Dominator Badge', style: 'text-purple-500 border-purple-500/20 bg-purple-500/5' },
-              { name: '🎖️ Veteran Badge', style: 'text-slate-400 border-slate-500/20 bg-slate-500/5' },
-              { name: '📦 Elite Collector', style: 'text-[#00d2ff] border-[#00d2ff]/20 bg-[#00d2ff]/5' },
-              { name: '👑 Mythic Fashion', style: 'text-pink-500 border-pink-500/20 bg-pink-500/5' },
-              { name: '🧬 OG Player', style: 'text-orange-400 border-orange-500/20 bg-orange-500/5' },
-              { name: '⚔️ Event Champion', style: 'text-green-400 border-green-400/20 bg-green-400/5' },
-            ].map((badge, idx) => (
-              <div key={idx} className={`p-3 rounded-xl border text-center font-black text-xs backdrop-blur-sm transition-all hover:scale-[1.02] ${badge.style}`}>
-                {badge.name}
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* ==================== REDESIGNED CLEAN PARTNER SECTION ==================== */}
-        {partnerProfile && (
-          <motion.section 
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="w-full bg-[#0d121f]/50 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-[0_0_15px_rgba(0,210,255,0.15)] opacity-80 hover:opacity-100 transition-opacity"
-          >
-            <div className="text-center mb-3">
-              <span className="text-[9px] text-[#00d2ff] font-black tracking-widest bg-[#00d2ff]/10 px-3 py-0.5 rounded-full border border-[#00d2ff]/20">
-                CLAN PARTNER
-              </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <img 
-                src={partnerProfile?.avatarUrl || "https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1974"} 
-                alt="Partner Avatar" 
-                className="w-14 h-14 rounded-xl object-cover border border-white/10"
-              />
-              <div className="flex-1 min-w-0">
-                <h4 className="text-base font-bold text-slate-200 truncate">{partnerProfile?.ign || "Partner_IGN"}</h4>
-                <p className="text-xs text-[#00d2ff]/70 font-mono">ID: {partnerProfile?.bgmiId || "XXXXXXXXXX"}</p>
-              </div>
-              <div className="text-right flex flex-col justify-center items-end">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tier</span>
-                <span className="text-xs font-bold text-[#ffb703]">{partnerProfile?.tier || "Ace"}</span>
-              </div>
-            </div>
-          </motion.section>
-        )}
-
-      </div>
-
-      {isAdmin && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <a href="/admin" className="bg-[#9d4edd] text-white p-3 rounded-full flex items-center justify-center shadow-lg border border-purple-400">
-            <FiSettings className="text-lg" />
-          </a>
-        </div>
-      )}
-    </div>
-  );
+const BADGE_MAP: Record = {
+verified: { label: 'Verified Player', icon: '✔', color: '#3B82F6', glow: 'rgba(59,130,246,0.3)' },
+elite: { label: 'Elite Player', icon: '👑', color: '#FFD700', glow: 'rgba(255,215,0,0.3)' },
+partner: { label: 'Partner', icon: '❤️', color: '#F43F5E', glow: 'rgba(244,63,94,0.3)' },
+popular: { label: 'Popular Player', icon: '⭐', color: '#A855F7', glow: 'rgba(168,85,247,0.3)' },
 };
 
-// 3. Ensuring seamless structural mapping via default export
-export default Home;
-          
+function calcAnniversary(since: string) {
+const start = new Date(since);
+const now = new Date();
+const diff = now.getTime() - start.getTime();
+if (diff < 0) return null;
+const totalDays = Math.floor(diff / 86400000);
+const years = Math.floor(totalDays / 365);
+const months = Math.floor((totalDays % 365) / 30);
+const days = totalDays % 30;
+const hours = Math.floor((diff % 86400000) / 3600000);
+const mins = Math.floor((diff % 3600000) / 60000);
+return { years, months, days, hours, mins, totalDays };
+}
+
+function PartnerSection({ partner }: { partner: PartnerData }) {
+const [counter, setCounter] = useState(() => calcAnniversary(partner.playingTogetherSince));
+const intervalRef = useRef>();
+
+useEffect(() => {
+if (!partner.playingTogetherSince) return;
+intervalRef.current = setInterval(() => {
+setCounter(calcAnniversary(partner.playingTogetherSince));
+}, 60000);
+return () => clearInterval(intervalRef.current);
+}, [partner.playingTogetherSince]);
+
+const kd = partner.kd ?? 0;
+const kdColor = getKdColor(kd);
+
+return (
+
+className="px-5 mt-4"
+initial={{ opacity: 0, y: 20 }}
+animate={{ opacity: 1, y: 0 }}
+transition={{ delay: 0.35 }}
+>
+
+className="rounded-2xl p-4 relative overflow-hidden"
+style={{
+background: 'linear-gradient(135deg, rgba(244,63,94,0.08), rgba(168,85,247,0.08), rgba(7,11,20,0.9))',
+border: '1px solid rgba(244,63,94,0.35)',
+boxShadow: '0 0 30px rgba(244,63,94,0.12), 0 0 60px rgba(168,85,247,0.06)',
+}}
+>
+{/* Decorative glow orb */}
+
+className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none"
+style={{ background: 'radial-gradient(circle, #F43F5E, transparent)' }}
+/>
+
+{/* Header */}
+
+
+❤️
+
+Partner
+
+
+className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold border"
+style={{ color: '#FFD700', borderColor: 'rgba(255,215,0,0.3)', background: 'rgba(255,215,0,0.1)' }}
+>
+👑 Elite Partner
+
+
+
+
+{/* Partner card */}
+
+
+{/* Photo */}
+
+
+
+className="w-20 h-20 rounded-2xl overflow-hidden border-2"
+style={{ borderColor: 'rgba(244,63,94,0.5)', boxShadow: '0 0 20px rgba(244,63,94,0.25)' }}
+>
+{partner.photo ? (
+
+) : (
+
+
+{partner.name?.[0] || '?'}
+
+
+)}
+
+
+{partner.isOnline ? (
+
+className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-[#070B14] flex items-center justify-center"
+animate={{ scale: [1, 1.3, 1] }}
+transition={{ duration: 2, repeat: Infinity }}
+>
+
+
+) : (
+
+
+
+
+
+)}
+
+
+
+{/* Info */}
+
+
+
+{partner.name}
+
+
+UID: {partner.uid}
+
+{partner.relationshipStatus && (
+
+className="inline-block text-[10px] px-2 py-0.5 rounded-full border mb-2"
+style={{ color: '#F43F5E', borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.1)' }}
+>
+{partner.relationshipStatus}
+
+)}
+
+
+
+className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold"
+style={{ background: `${kdColor}12`, border: `1px solid ${kdColor}30`, color: kdColor }}
+>
+{getKdDot(kd)}
+{formatKd(kd)}+ KD
+
+
+
+
+
+{partner.synergy}+ SYN
+
+
+
+
+
+
+
+{/* Anniversary counter */}
+{counter && partner.playingTogetherSince && (
+
+
+
+
+
+Playing Together Since {partner.playingTogetherSince}
+
+
+
+
+{[
+{ label: 'Years', value: counter.years },
+{ label: 'Months', value: counter.months },
+{ label: 'Days', value: counter.days },
+{ label: 'Hours', value: counter.hours },
+].map(({ label, value }) => (
+
+key={label}
+className="text-center py-1.5 rounded-xl"
+style={{ background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.15)' }}
+>
+
+{value}
+
+
+{label}
+
+
+
+))}
+
+
+
+{counter.totalDays}+ days together ❤️
+
+
+)}
+
+
+);
+}
+
+export default function HomePage() {
+const [profile, setProfile] = useState(null);
+const [social, setSocial] = useState(null);
+const [friends, setFriends] = useState([]);
+const [, setGallery] = useState([]);
+const [, setSettings] = useState(null);
+const [loading, setLoading] = useState(true);
+const navigate = useNavigate();
+
+useEffect(() => {
+async function loadData() {
+try {
+const [p, s, f, g, st] = await Promise.all([
+getProfile(), getSocialLinks(), getFriends(), getGallery(), getSettings(),
+]);
+setProfile(p);
+setSocial(s);
+setFriends(f);
+setGallery(g);
+setSettings(st);
+} catch (e) {
+console.error(e);
+} finally {
+setLoading(false);
+}
+}
+loadData();
+}, []);
+
+if (loading) {
+return (
+
+
+
+
+
+
+);
+}
+
+const kd = profile?.kd ?? 0;
+const kdColor = getKdColor(kd);
+const badges = profile?.badges ?? [];
+
+const stats = {
+totalFriends: friends.length,
+totalSynergy: friends.reduce((s, f) => s + (f.synergy || 0), 0),
+highestSynergy: friends.length > 0 ? Math.max(...friends.map(f => f.synergy || 0)) : 0,
+avgSynergy: friends.length > 0 ? Math.round(friends.reduce((s, f) => s + (f.synergy || 0), 0) / friends.length) : 0,
+totalMemories: friends.reduce((s, f) => s + (f.memories?.length || 0), 0),
+collectionAvg: friends.length > 0 ? Math.round(friends.reduce((s, f) => s + (f.collectionLevel || 0), 0) / friends.length) : 0,
+};
+
+return (
+
+
+{/* Hero */}
+
+
+
+className="absolute inset-0 bg-cover bg-center"
+style={{
+backgroundImage: profile?.heroBackground
+? `url(${profile.heroBackground})`
+: 'linear-gradient(135deg, #0D1321, #070B14)',
+}}
+/>
+
+
+
+
+
+
+
+
+className="flex items-end gap-4"
+initial={{ opacity: 0, y: 30 }}
+animate={{ opacity: 1, y: 0 }}
+transition={{ duration: 0.6 }}
+>
+{/* Avatar */}
+
+
+
+className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden border-2 border-[#00F0FF]/40"
+style={{ boxShadow: '0 0 30px rgba(0,240,255,0.2)' }}
+>
+{profile?.profilePhoto ? (
+
+) : (
+
+
+
+
+
+)}
+
+
+
+className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-[#070B14]"
+animate={{ scale: [1, 1.2, 1] }}
+transition={{ duration: 2, repeat: Infinity }}
+/>
+
+
+
+{/* Name + info */}
+
+
+
+className="text-2xl md:text-3xl font-bold text-white font-gaming"
+initial={{ opacity: 0, x: -20 }}
+animate={{ opacity: 1, x: 0 }}
+transition={{ delay: 0.2 }}
+>
+{profile?.ign || 'Your IGN'}
+
+
+className="text-sm text-[#94A3B8] mt-0.5"
+initial={{ opacity: 0 }}
+animate={{ opacity: 1 }}
+transition={{ delay: 0.3 }}
+>
+{profile?.realName || 'Your Name'}
+
+
+className="flex items-center gap-3 mt-2 flex-wrap"
+initial={{ opacity: 0 }}
+animate={{ opacity: 1 }}
+transition={{ delay: 0.4 }}
+>
+
+ID: {profile?.bgmiId || '---'}
+
+
+
+{profile?.country || 'Country'}
+
+{kd > 0 && (
+
+className="text-xs font-bold px-2 py-0.5 rounded-md border"
+style={{ color: kdColor, borderColor: `${kdColor}40`, background: `${kdColor}12` }}
+>
+{getKdDot(kd)} {formatKd(kd)}+ KD
+
+)}
+
+
+{/* Badges */}
+{badges.length > 0 && (
+
+className="flex flex-wrap gap-1.5 mt-2"
+initial={{ opacity: 0 }}
+animate={{ opacity: 1 }}
+transition={{ delay: 0.5 }}
+>
+{badges.map(badge => {
+const b = BADGE_MAP[badge];
+if (!b) return null;
+return (
+
+key={badge}
+className="text-[10px] px-2 py-0.5 rounded-full border font-semibold"
+style={{ color: b.color, borderColor: `${b.color}40`, background: `${b.color}15` }}
+>
+{b.icon} {b.label}
+
+);
+})}
+
+)}
+
+
+
+
+
+
+
+
+{/* Partner Section */}
+{profile?.partner?.name && }
+
+{/* Quick Stats */}
+
+className="px-5 mt-4"
+variants={staggerContainer}
+initial="hidden"
+animate="visible"
+>
+
+
+{[
+{ label: 'Friends', value: stats.totalFriends, icon: UsersIcon, color: '#00F0FF' },
+{ label: 'Total Synergy', value: stats.totalSynergy, icon: Heart, color: '#FF6B6B' },
+{ label: 'Avg Synergy', value: stats.avgSynergy, icon: Award, color: '#FFD700' },
+{ label: 'Coll. Avg', value: stats.collectionAvg, icon: Target, color: '#B829DD' },
+{ label: 'Memories', value: stats.totalMemories, icon: ImageIcon, color: '#4ECDC4' },
+{ label: 'Highest SYN', value: stats.highestSynergy,icon: TrophyIcon, color: '#00E5FF' },
+].map((stat) => (
+
+
+
+
+
+{stat.label}
+
+
+
+end={stat.value}
+className="text-xl font-bold font-gaming"
+suffix="+"
+style={{ color: stat.color } as React.CSSProperties}
+/>
+
+
+))}
+
+
+
+
+{/* Profile Details */}
+
+className="px-5 mt-6"
+initial={{ opacity: 0, y: 20 }}
+animate={{ opacity: 1, y: 0 }}
+transition={{ delay: 0.5 }}
+>
+
+
+Profile Details
+
+
+
+{/* KD */}
+{kd > 0 && (
+
+
+
+className="flex items-center justify-between p-3 rounded-xl border"
+style={{ background: `${kdColor}08`, borderColor: `${kdColor}25` }}
+>
+
+
+
+K/D Ratio
+
+
+
+{getKdDot(kd)} {formatKd(kd)}+
+
+
+
+
+
+)}
+
+{[
+{ label: 'Collection Level', value: `${profile?.collectionLevel || 0}+`, icon: Target, color: '#B829DD' },
+{ label: 'Account Level', value: `${profile?.accountLevel || 0}+`, icon: Award, color: '#00F0FF' },
+{ label: 'Popularity', value: `${profile?.popularity || 0}+`, icon: Star, color: '#FF6B6B' },
+{ label: 'Likes', value: `${profile?.likes || 0}+`, icon: Heart, color: '#F43F5E' },
+{ label: 'Matches', value: `${profile?.matches || 0}+`, icon: Swords, color: '#00E5FF' },
+{ label: 'Achieve. Points', value: `${profile?.achievement
