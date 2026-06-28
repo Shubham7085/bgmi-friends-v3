@@ -1,17 +1,18 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FiInstagram, FiYoutube, FiAward, FiShield, FiZap, FiUser, FiUsers, FiSettings } from 'react-icons/fi';
+import { FiInstagram, FiYoutube, FiAward, FiShield, FiZap, FiSettings } from 'react-icons/fi';
 
-// Note: Aapke project me jo pehle se components/props aa rahe hain (Firebase data), unhe upar intact rehne dena.
-interface BGMIProps {
-  userProfile?: any; 
+// 1. Safe Type mapping matching your existing project system
+interface HomeProps {
+  userProfile?: any;
   partnerProfile?: any;
-  isAdmin?: boolean; 
+  isAdmin?: boolean;
+  friends?: any[];
 }
 
-export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isAdmin }) => {
+// 2. Main component definition matching default layout standards
+const Home: React.FC<HomeProps> = ({ userProfile, partnerProfile, isAdmin }) => {
   
-  // Data binding with fallback data matching your identity
   const myStats = {
     ign: userProfile?.ign || "D3XSHUBHAM",
     realName: userProfile?.realName || "SHUBHAM KUMAR NAGVANSHI",
@@ -29,20 +30,20 @@ export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isA
   return (
     <div className="min-h-screen bg-[#0a0c14] text-white font-sans relative overflow-x-hidden pb-16">
       
-      {/* 1. BGMI Lobby Background (Admin customizable) */}
+      {/* BGMI Lobby Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 fixed z-0"
         style={{ backgroundImage: `url(${userProfile?.lobbyBg || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070'})` }}
       />
       
-      {/* Main Container - Mobile First Responsive */}
+      {/* Main Glassmorphism UI Content */}
       <div className="relative z-10 container mx-auto px-4 pt-6 space-y-8 max-w-md md:max-w-3xl">
         
         {/* ==================== HOME PAGE HEADER ==================== */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-4 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 shadow-neon-blue"
+          className="text-center py-4 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 shadow-[0_0_15px_rgba(0,210,255,0.2)]"
         >
           <h1 className="text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#00d2ff] via-[#9d4edd] to-[#ffb703] uppercase">
             BGMI Vault
@@ -56,20 +57,16 @@ export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isA
           animate={{ opacity: 1, scale: 1 }}
           className="w-full relative rounded-3xl p-[2px] bg-gradient-to-b from-[#ffb703] via-[#00d2ff] to-[#9d4edd] shadow-[0_0_25px_rgba(255,183,3,0.4)] overflow-hidden"
         >
-          {/* Glassmorphism Card */}
           <div className="bg-[#0b0f19]/90 backdrop-blur-xl rounded-[22px] p-6 relative">
             
-            {/* Premium Mythic Badge */}
             <div className="absolute top-4 right-4">
               <span className="bg-gradient-to-r from-pink-600 to-purple-600 text-white text-[9px] font-black px-3 py-1 rounded-full border border-pink-400/40 tracking-wider shadow-[0_0_10px_rgba(219,39,119,0.5)]">
                 ★ MYTHIC FASHION
               </span>
             </div>
 
-            {/* Avatar and Info */}
             <div className="flex flex-col items-center text-center mt-4">
               <div className="relative mb-4">
-                {/* Glowing Premium Avatar Frame */}
                 <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-[#ffb703] via-[#00d2ff] to-[#9d4edd] p-1 shadow-[0_0_20px_rgba(0,210,255,0.6)]">
                   <img 
                     src={userProfile?.avatarUrl || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964"} 
@@ -77,25 +74,22 @@ export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isA
                     className="w-full h-full object-cover rounded-full bg-slate-900"
                   />
                 </div>
-                {/* Level Tag */}
                 <div className="absolute bottom-0 right-1 bg-gradient-to-r from-[#ffb703] to-yellow-600 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded-full border-2 border-[#0a0c14]">
                   Lv.{myStats.level}
                 </div>
               </div>
 
-              {/* IGN & Real Name */}
               <h2 className="text-2xl font-black text-white tracking-wide uppercase drop-shadow-[0_2px_10px_rgba(0,212,255,0.5)]">
                 {myStats.ign}
               </h2>
               <p className="text-xs text-slate-400 font-bold tracking-widest mt-0.5">{myStats.realName}</p>
               
-              {/* BGMI ID */}
               <p className="text-xs text-[#00d2ff] font-mono mt-2 bg-[#00d2ff]/10 px-4 py-1 rounded-md border border-[#00d2ff]/20 tracking-wider">
                 ID: {myStats.bgmiId}
               </p>
             </div>
 
-            {/* Premium Stats Grid (3-Column Gaming Layout) */}
+            {/* Core Stats Grid Layout */}
             <div className="grid grid-cols-3 gap-3 my-6">
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center backdrop-blur-md shadow-[0_0_10px_rgba(0,210,255,0.15)]">
                 <p className="text-2xl font-black text-[#00d2ff] font-mono">{myStats.kd}</p>
@@ -111,7 +105,6 @@ export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isA
               </div>
             </div>
 
-            {/* Collection Level & Socials */}
             <div className="grid grid-cols-2 gap-3 mb-5">
               <div className="bg-slate-900/60 p-3 rounded-xl border border-white/5 text-center">
                 <p className="text-[10px] text-slate-400 uppercase tracking-wider">Collection Lv.</p>
@@ -126,7 +119,6 @@ export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isA
               </div>
             </div>
 
-            {/* About Me Box */}
             <div className="bg-slate-900/90 p-4 rounded-xl border border-white/10 relative mt-4">
               <span className="absolute -top-2 left-4 bg-[#0b0f19] text-[#00d2ff] text-[8px] px-2 font-black tracking-widest border border-[#00d2ff]/30 rounded">ABOUT ME</span>
               <p className="text-xs text-slate-300 italic text-center pt-1">{myStats.about}</p>
@@ -135,7 +127,7 @@ export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isA
           </div>
         </motion.section>
 
-        {/* ==================== NEW PREMIUM ACHIEVEMENTS SECTION ==================== */}
+        {/* ==================== ACHIEVEMENTS BADGES SECTION ==================== */}
         <motion.div 
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -163,7 +155,7 @@ export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isA
           </div>
         </motion.div>
 
-        {/* ==================== CLEAN REDESIGNED PARTNER SECTION ==================== */}
+        {/* ==================== REDESIGNED CLEAN PARTNER SECTION ==================== */}
         {partnerProfile && (
           <motion.section 
             initial={{ opacity: 0, y: 15 }}
@@ -196,15 +188,17 @@ export const BGMIHome: React.FC<BGMIProps> = ({ userProfile, partnerProfile, isA
 
       </div>
 
-      {/* Admin Quick Entry Button Trigger (Maintains panel integrity) */}
       {isAdmin && (
         <div className="fixed bottom-4 right-4 z-50">
           <a href="/admin" className="bg-[#9d4edd] text-white p-3 rounded-full flex items-center justify-center shadow-lg border border-purple-400">
-            <FiSettings className="text-lg animate-spin-slow" />
+            <FiSettings className="text-lg" />
           </a>
         </div>
       )}
     </div>
   );
 };
-               
+
+// 3. Ensuring seamless structural mapping via default export
+export default Home;
+          
