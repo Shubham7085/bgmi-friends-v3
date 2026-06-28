@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Heart, Award, Target, ChevronRight, Instagram, Youtube, Facebook, MessageCircle, Swords, Star, Wifi, WifiOff, Shield, Zap } from 'lucide-react';
+import { MapPin, Calendar, Heart, Award, Target, ChevronRight, Instagram, Youtube, Facebook, MessageCircle, Swords, Star, Wifi, WifiOff, Users, Trophy, Image, BarChart2, LogOut, Menu } from 'lucide-react';
 import { getProfile, getSocialLinks, getFriends, getGallery, getSettings } from '../data/firebaseService';
 import type { ProfileData, SocialLinks, Friend, GalleryImage, SiteSettings, PartnerData } from '../types';
 import GlassCard from '../components/ui/GlassCard';
@@ -8,6 +8,14 @@ import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { staggerContainer, fadeInUp } from '../utils/animations';
 import { useNavigate } from 'react-router-dom';
 import { getKdColor, getKdDot, formatKd } from '../utils/kdColor';
+
+// Quick Actions Icons setup matching layout
+const quickActions = [
+  { label: 'All Friends', icon: Users, path: '/friends', color: '#00F0FF' },
+  { label: 'Top 10', icon: Trophy, path: '/leaderboard', color: '#FFD700' },
+  { label: 'Gallery', icon: Image, path: '/gallery', color: '#FF6B6B' },
+  { label: 'Statistics', icon: BarChart2, path: '/statistics', color: '#4ECDC4' },
+];
 
 const BADGE_MAP: Record<string, { label: string; icon: string; color: string; glow: string }> = {
   verified: { label: 'Verified Player', icon: '✔', color: '#3B82F6', glow: 'rgba(59,130,246,0.3)' },
@@ -31,8 +39,8 @@ function calcAnniversary(since: string) {
   return { years, months, days, hours, mins, totalDays };
 }
 
-// ==================== PARTNER SECTION (REDESIGNED PREMIUM & CLEAN) ====================
-function PartnerSection({ partner }: { partner: any }) {
+// ==================== PARTNER SECTION ====================
+function PartnerSection({ partner }: { partner: PartnerData }) {
   const [counter, setCounter] = useState(() => calcAnniversary(partner?.playingTogetherSince));
   const intervalRef = useRef<any>(null);
 
@@ -44,14 +52,12 @@ function PartnerSection({ partner }: { partner: any }) {
     return () => clearInterval(intervalRef.current);
   }, [partner?.playingTogetherSince]);
 
-  if (!partner || !partner.name) return null;
-
-  const kd = partner.kd ?? 0;
+  const kd = partner?.kd ?? 0;
   const kdColor = getKdColor(kd);
 
   return (
     <motion.div 
-      className="px-5 mt-4 opacity-85 hover:opacity-100 transition-opacity"
+      className="px-5 mt-4"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.35 }}
@@ -59,48 +65,72 @@ function PartnerSection({ partner }: { partner: any }) {
       <div 
         className="rounded-2xl p-4 relative overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, rgba(0,210,255,0.05), rgba(157,78,221,0.05), rgba(7,11,20,0.95))',
-          border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 0 20px rgba(0,210,255,0.05)',
+          background: 'linear-gradient(135deg, rgba(244,63,94,0.08), rgba(168,85,247,0.08), rgba(7,11,20,0.95))',
+          border: '1px solid rgba(244,63,94,0.35)',
+          boxShadow: '0 0 30px rgba(244,63,94,0.12), 0 0 60px rgba(168,85,247,0.06)',
         }}
       >
-        <div className="text-center mb-2">
-          <span className="text-[9px] text-[#00F0FF] font-black tracking-widest bg-[#00F0FF]/10 px-3 py-0.5 rounded-full border border-[#00F0FF]/20">
-            CLAN PARTNER MATCH
+        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none" style={{ background: 'radial-gradient(circle, #F43F5E, transparent)' }} />
+        
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-[#F43F5E]">
+            <Heart className="w-4 h-4 fill-[#F43F5E]" /> Partner
+          </div>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/30 text-[#FFD700]">
+            👑 Elite Partner
           </span>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 relative">
-            {partner.photo ? (
+          <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 relative border-[#F43F5E]/40 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+            {partner?.photo ? (
               <img src={partner.photo} alt={partner.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white font-bold">
-                {partner.name?.[0] || '?'}
-              </div>
+              <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white font-bold">{partner?.name?.[0] || '?'}</div>
             )}
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-[#070B14]" />
           </div>
 
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-slate-200 truncate">{partner.name}</h4>
-            <p className="text-[10px] text-slate-400 font-mono">ID: {partner.uid || '---'}</p>
-          </div>
-
-          <div className="text-right">
-            <span 
-              className="text-[10px] font-bold px-2 py-0.5 rounded border"
-              style={{ background: `${kdColor}12`, border: `1px solid ${kdColor}30`, color: kdColor }}
-            >
-              {formatKd(kd)} K/D
-            </span>
+            <h4 className="text-sm font-bold text-white flex items-center gap-1.5">{partner?.name}</h4>
+            <p className="text-[10px] text-slate-400 font-mono mt-0.5">UID: {partner?.uid || '---'}</p>
+            <div className="flex gap-1.5 mt-1.5 flex-wrap">
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 font-medium">Lover</span>
+              <span className="text-[9px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1" style={{ background: `${kdColor}15`, border: `1px solid ${kdColor}30`, color: kdColor }}>
+                {getKdDot(kd)} {formatKd(kd)} KD
+              </span>
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 font-medium">
+                ❤️ {partner?.synergy || '0'}+ SYN
+              </span>
+            </div>
           </div>
         </div>
+
+        {counter && partner?.playingTogetherSince && (
+          <div className="mt-4 pt-3 border-t border-white/5">
+            <p className="text-[10px] text-center text-slate-400 mb-2">Playing Together Since {partner.playingTogetherSince}</p>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[
+                { label: 'Years', value: counter.years },
+                { label: 'Months', value: counter.months },
+                { label: 'Days', value: counter.days },
+                { label: 'Hours', value: counter.hours },
+              ].map(({ label, value }) => (
+                <div key={label} className="p-1 rounded-xl border border-rose-500/10 bg-rose-500/[0.04]">
+                  <p className="text-xs font-bold text-rose-400">{value}</p>
+                  <p className="text-[8px] text-slate-500 uppercase">{label}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-center text-rose-400/80 mt-2 font-medium">{counter.totalDays}+ days together ❤️</p>
+          </div>
+        )}
       </div>
     </motion.div>
   );
 }
 
-// ==================== MAIN HOME PAGE DEFAULT EXPORT ====================
+// ==================== MAIN HOMEPAGE ====================
 export default function HomePage() {
   const [profile, setProfile] = useState<any>(null);
   const [social, setSocial] = useState<any>(null);
@@ -124,7 +154,6 @@ export default function HomePage() {
       } catch (e) {
         console.error(e);
       } finally {
-        // Safe timeout matrix to ensure accurate DOM rendering
         setLoading(false);
       }
     }
@@ -143,163 +172,207 @@ export default function HomePage() {
   const kdColor = getKdColor(kd);
   const badges = profile?.badges ?? [];
 
+  const stats = {
+    totalFriends: friends.length || 1,
+    totalSynergy: friends.reduce((s, f) => s + (f.synergy || 0), 0) || 4499,
+    highestSynergy: friends.length > 0 ? Math.max(...friends.map(f => f.synergy || 0)) : 4499,
+    avgSynergy: friends.length > 0 ? Math.round(friends.reduce((s, f) => s + (f.synergy || 0), 0) / friends.length) : 4499,
+    totalMemories: friends.reduce((s, f) => s + (f.memories?.length || 0), 0) || 0,
+    collectionAvg: friends.length > 0 ? Math.round(friends.reduce((s, f) => s + (f.collectionLevel || 0), 0) / friends.length) : 6469,
+  };
+
   return (
-    <div className="min-h-screen bg-[#0a0c14] text-white font-sans relative overflow-x-hidden pb-16">
+    <div className="min-h-screen bg-[#070b14] text-white font-sans overflow-x-hidden pb-24">
       
-      {/* 1. BGMI Lobby Background View */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 fixed z-0"
-        style={{
-          backgroundImage: profile?.heroBackground
-            ? `url(${profile.heroBackground})`
-            : 'linear-gradient(135deg, #0D1321, #070B14)',
-        }}
-      />
+      {/* Top Floating App Bar */}
+      <div className="w-full px-4 py-3 flex items-center justify-between border-b border-white/5 bg-[#070b14]/80 backdrop-blur-md sticky top-0 z-50">
+        <button className="text-slate-400 p-1"><Menu className="w-5 h-5" /></button>
+        <div className="flex items-center gap-1.5 text-xs font-black tracking-widest text-[#00F0FF]">
+          🛡️ BGMI VAULT
+        </div>
+        <button className="text-slate-400 p-1"><LogOut className="w-4 h-4" /></button>
+      </div>
 
-      <div className="relative z-10 container mx-auto px-4 pt-6 space-y-6 max-w-md md:max-w-2xl">
+      {/* Hero Profile Banner Header */}
+      <div className="w-full relative h-48 md:h-56 flex items-end p-5 overflow-hidden border-b border-white/5">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: profile?.heroBackground
+              ? `url(${profile.heroBackground})`
+              : 'linear-gradient(135deg, #0D1321, #070B14)',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070b14] via-[#070b14]/40 to-transparent" />
         
-        {/* Header Title */}
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+          className="flex items-end gap-4 relative z-10 w-full"
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-4 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 shadow-[0_0_15px_rgba(0,240,255,0.15)]"
+          transition={{ duration: 0.5 }}
         >
-          <h1 className="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#00F0FF] via-[#A855F7] to-[#FFD700] uppercase">
-            BGMI Vault
-          </h1>
-          <p className="text-[9px] text-slate-400 tracking-widest mt-0.5">PREMIUM PROFILES</p>
-        </motion.div>
-
-        {/* ==================== MY PROFILE (MAIN ATTRACTION - EXTREME PREMIUM) ==================== */}
-        <motion.section 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full relative rounded-3xl p-[2px] bg-gradient-to-b from-[#FFD700] via-[#00F0FF] to-[#A855F7] shadow-[0_0_25px_rgba(255,215,0,0.35)] overflow-hidden"
-        >
-          <div className="bg-[#0b0f19]/95 backdrop-blur-xl rounded-[22px] p-5 relative">
-            
-            {/* Custom Mythic Tag Flag */}
-            <div className="absolute top-4 right-4">
-              <span className="bg-gradient-to-r from-pink-600 to-purple-600 text-white text-[8px] font-black px-2.5 py-1 rounded-full border border-pink-400/30 tracking-wider shadow-[0_0_10px_rgba(219,39,119,0.4)]">
-                ★ MYTHIC FASHION
+          <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#00F0FF]/40 relative shadow-[0_0_20px_rgba(0,240,255,0.2)]">
+            <img src={profile?.profilePhoto || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964"} alt="Avatar" className="w-full h-full object-cover" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-[#070B14]" />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-black tracking-wide text-white">{profile?.ign || 'D3xSHUBHAM'}</h2>
+            <p className="text-xs text-slate-400 font-medium">{profile?.realName || 'SHUBHAM KUMAR NAGVANSHI'}</p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="text-[10px] bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/20 font-mono px-2 py-0.5 rounded-md">
+                ID: {profile?.bgmiId || '5305091851'}
+              </span>
+              <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                📍 {profile?.country || 'INDIA'}
               </span>
             </div>
-
-            {/* Avatar Framework */}
-            <div className="flex flex-col items-center text-center mt-3">
-              <div className="relative mb-3">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#FFD700] via-[#00F0FF] to-[#A855F7] p-1 shadow-[0_0_15px_rgba(0,240,255,0.5)]">
-                  <img 
-                    src={profile?.profilePhoto || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964"} 
-                    alt="Main Profile" 
-                    className="w-full h-full object-cover rounded-full bg-slate-900"
-                  />
-                </div>
-                <div className="absolute bottom-0 right-1 bg-gradient-to-r from-[#FFD700] to-yellow-600 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full border border-[#0a0c14]">
-                  Lv.{profile?.accountLevel || "78"}
-                </div>
-              </div>
-
-              {/* Identity Headers */}
-              <h2 className="text-xl font-black text-white tracking-wide uppercase drop-shadow-[0_2px_8px_rgba(0,240,255,0.4)]">
-                {profile?.ign || "D3XSHUBHAM"}
-              </h2>
-              <p className="text-xs text-slate-400 font-bold tracking-widest">{profile?.realName || "SHUBHAM KUMAR NAGVANSHI"}</p>
-              
-              <p className="text-xs text-[#00F0FF] font-mono mt-1.5 bg-[#00F0FF]/10 px-3 py-0.5 rounded border border-[#00F0FF]/20">
-                ID: {profile?.bgmiId || "5557085848"}
-              </p>
-            </div>
-
-            {/* Core Stats Metric Display */}
-            <div className="grid grid-cols-3 gap-2.5 my-5">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-2 text-center backdrop-blur-md">
-                <p className="text-xl font-black text-[#00F0FF] font-mono">{formatKd(kd)}</p>
-                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">K/D Ratio</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-2 text-center backdrop-blur-md">
-                <p className="text-sm font-black text-[#FFD700] pt-1 truncate">{profile?.tier || "Conqueror"}</p>
-                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Tier</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-2 text-center backdrop-blur-md">
-                <p className="text-xl font-black text-[#A855F7] font-mono">{profile?.popularity || "1.2M"}</p>
-                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Popularity</p>
-              </div>
-            </div>
-
-            {/* Extra Structural Elements */}
-            <div className="grid grid-cols-2 gap-2.5 mb-4">
-              <div className="bg-slate-900/60 p-2.5 rounded-xl border border-white/5 text-center">
-                <p className="text-[9px] text-slate-400 uppercase tracking-wider">Collection Level</p>
-                <p className="text-sm font-black text-slate-200">{profile?.collectionLevel || "65"}</p>
-              </div>
-              <div className="bg-slate-900/60 p-2.5 rounded-xl border border-white/5 text-center flex flex-col justify-center items-center">
-                <p className="text-[9px] text-slate-400 uppercase tracking-wider mb-1">Social Handles</p>
-                <div className="flex space-x-3 text-sm">
-                  <a href={social?.instagram || "https://instagram.com/shubhamnagvanshi84823"} target="_blank" rel="noreferrer" className="text-pink-500"><Instagram className="w-4 h-4" /></a>
-                  <a href={social?.youtube || "#"} target="_blank" rel="noreferrer" className="text-red-500"><Youtube className="w-4 h-4" /></a>
-                </div>
-              </div>
-            </div>
-
-            {/* About Box Description */}
-            <div className="bg-slate-900/90 p-3 rounded-xl border border-white/10 relative mt-3">
-              <span className="absolute -top-1.5 left-3 bg-[#0b0f19] text-[#00F0FF] text-[7px] px-1.5 font-black tracking-widest border border-[#00F0FF]/30 rounded">ABOUT ME</span>
-              <p className="text-xs text-slate-300 italic text-center">{profile?.about || "PUBG/BGMI Professional Player & Collector."}</p>
-            </div>
-
           </div>
-        </motion.section>
+        </motion.div>
+      </div>
 
-        {/* ==================== ACHIEVEMENTS BADGES SECTION ==================== */}
-        <motion.div 
-          className="bg-[#0d121f]/80 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-        >
-          <h3 className="text-xs font-black text-[#A855F7] tracking-widest uppercase mb-3 flex items-center gap-1.5 border-b border-white/5 pb-1.5">
-            <Shield className="w-3.5 h-3.5" /> VAULT ACHIEVEMENTS
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
+      {/* Badges Dispatch Row */}
+      {badges.length > 0 && (
+        <div className="px-5 mt-3 flex flex-wrap gap-1.5">
+          {badges.map((badge: string) => {
+            const b = BADGE_MAP[badge];
+            if (!b) return null;
+            return (
+              <span key={badge} className="text-[9px] px-2 py-0.5 rounded-full border font-bold" style={{ color: b.color, borderColor: `${b.color}30`, background: `${b.color}10` }}>
+                {b.icon} {b.label}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Partner Wrapper Hook */}
+      <PartnerSection partner={profile?.partner} />
+
+      {/* Quick Stats Grid Dashboard Card */}
+      <motion.div 
+        className="px-5 mt-4 grid grid-cols-2 gap-3"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
+        {[
+          { label: 'FRIENDS', value: stats.totalFriends, color: '#00F0FF' },
+          { label: 'TOTAL SYNERGY', value: stats.totalSynergy, color: '#FF6B6B' },
+          { label: 'AVG SYNERGY', value: stats.avgSynergy, color: '#FFD700' },
+          { label: 'COLL. AVG', value: stats.collectionAvg, color: '#B829DD' },
+          { label: 'MEMORIES', value: stats.totalMemories, color: '#4ECDC4' },
+          { label: 'HIGHEST SYN', value: stats.highestSynergy, color: '#00E5FF' },
+        ].map((stat) => (
+          <div key={stat.label} className="p-3 rounded-xl bg-[#0d121f]/40 border border-white/5 backdrop-blur-sm">
+            <p className="text-[9px] text-slate-400 font-bold tracking-wider">{stat.label}</p>
+            <p className="text-lg font-black mt-1 font-mono" style={{ color: stat.color }}>{stat.value}+</p>
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Profile Details Block Card Layout */}
+      <div className="px-5 mt-5">
+        <div className="rounded-2xl p-4 bg-[#0d121f]/40 border border-white/5 space-y-4">
+          <div className="text-xs font-black text-[#00F0FF] tracking-wider uppercase flex items-center gap-1.5 border-b border-white/5 pb-2">
+            ⚔️ Profile Details
+          </div>
+          
+          <div className="grid grid-cols-2 gap-y-3.5 gap-x-4">
             {[
-              { name: '🏆 Conqueror Badge', style: 'text-[#FFD700] border-[#FFD700]/20 bg-[#FFD700]/5' },
-              { name: '⚡ Ace Badge', style: 'text-red-500 border-red-500/20 bg-red-500/5' },
-              { name: '🔥 Dominator Badge', style: 'text-purple-500 border-purple-500/20 bg-purple-500/5' },
-              { name: '🎖️ Veteran Badge', style: 'text-slate-400 border-slate-500/20 bg-slate-500/5' },
-              { name: '📦 Elite Collector', style: 'text-[#00F0FF] border-[#00F0FF]/20 bg-[#00F0FF]/5' },
-              { name: '👑 Mythic Fashion', style: 'text-pink-500 border-pink-500/20 bg-pink-500/5' },
-              { name: '🧬 OG Player', style: 'text-orange-400 border-orange-500/20 bg-orange-400/5' },
-              { name: '⚔️ Event Champion', style: 'text-green-400 border-green-400/20 bg-green-400/5' },
-            ].map((b, idx) => (
-              <div key={idx} className={`p-2 rounded-xl border text-center font-black text-[11px] backdrop-blur-sm ${b.style}`}>
-                {b.name}
+              { label: 'Collection Level', value: `${profile?.collectionLevel || '71'}+`, color: '#B829DD' },
+              { label: 'Account Level', value: `${profile?.accountLevel || '91'}+`, color: '#00F0FF' },
+              { label: 'Popularity', value: `${profile?.popularity || '2267874'}+`, color: '#FFD700' },
+              { label: 'Likes', value: `${profile?.likes || '26868'}+`, color: '#F43F5E' },
+              { label: 'Matches', value: `${profile?.matches || '0'}+`, color: '#00E5FF' },
+              { label: 'Achieve. Points', value: `${profile?.achievementPoints || '0'}+`, color: '#4ECDC4' },
+              { label: 'Current Tier', value: profile?.tier || 'Ace Dominator', color: '#FF9F43' },
+              { label: 'Highest Tier', value: profile?.highestTier || 'Ace Dominator', color: '#FF5252' },
+              { label: 'Playing Since', value: profile?.playingSince || '8 YEARS', color: '#10B981' },
+              { label: 'State', value: profile?.state || 'BIHAR', color: '#6366F1' },
+            ].map((item) => (
+              <div key={item.label} className="min-w-0">
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider truncate">{item.label}</p>
+                <p className="text-xs font-black mt-0.5 text-slate-200 truncate">{item.value}</p>
               </div>
             ))}
           </div>
-        </motion.div>
-
-        {/* ==================== PARTNER CONNECTOR DISPATCH ==================== */}
-        {profile?.partner && <PartnerSection partner={profile.partner} />}
-
-        {/* Quick Router Action Bar */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <button 
-            onClick={() => navigate('/friends')} 
-            className="p-3 bg-gradient-to-r from-slate-900 to-black/80 rounded-xl border border-[#00F0FF]/20 text-xs font-bold text-slate-200 shadow-sm flex items-center justify-center gap-2"
-          >
-            👥 View Friends Page
-          </button>
-          <button 
-            onClick={() => navigate('/gallery')} 
-            className="p-3 bg-gradient-to-r from-slate-900 to-black/80 rounded-xl border border-white/5 text-xs font-bold text-slate-400 flex items-center justify-center gap-2"
-          >
-            🖼️ View Gallery
-          </button>
         </div>
-
       </div>
+
+      {/* Connect Box */}
+      <div className="px-5 mt-4">
+        <div className="rounded-2xl p-4 bg-[#0d121f]/40 border border-white/5">
+          <p className="text-[10px] font-bold text-[#00F0FF] uppercase tracking-wider mb-2.5">Connect</p>
+          <a 
+            href={social?.instagram || "https://instagram.com/shubhamnagvanshi84823"} 
+            target="_blank" 
+            rel="noreferrer"
+            className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-pink-600/10 to-rose-600/10 border border-pink-500/20 flex items-center justify-center gap-2 text-xs font-bold text-pink-400"
+          >
+            <Instagram className="w-4 h-4" /> Instagram
+          </a>
+        </div>
+      </div>
+
+      {/* Quick Actions Router Matrix */}
+      <div className="px-5 mt-5">
+        <p className="text-[10px] font-bold text-[#00F0FF] uppercase tracking-wider mb-2.5">Quick Actions</p>
+        <div className="grid grid-cols-2 gap-3">
+          {quickActions.map((action) => (
+            <button 
+              key={action.label}
+              onClick={() => navigate(action.path)}
+              className="p-3 rounded-xl bg-[#0d121f]/40 border border-white/5 text-left flex flex-col justify-between h-20 relative overflow-hidden group active:scale-95 transition-transform"
+            >
+              <action.icon className="w-5 h-5" style={{ color: action.color }} />
+              <p className="text-xs font-bold text-slate-300 mt-2">{action.label}</p>
+              <ChevronRight className="w-3.5 h-3.5 absolute right-3 bottom-3 text-slate-500 group-hover:translate-x-1 transition-transform" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Featured Friends Horizontal Module */}
+      <div className="px-5 mt-5">
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-[10px] font-bold text-[#00F0FF] uppercase tracking-wider">Featured Friends</p>
+          <button onClick={() => navigate('/friends')} className="text-[10px] text-slate-400 font-bold">View All</button>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+          {friends.slice(0, 4).map((friend: any, index) => (
+            <div key={index} className="flex-shrink-0 w-24 p-2 rounded-xl bg-[#0d121f]/40 border border-white/5 text-center">
+              <div className="w-12 h-12 rounded-lg overflow-hidden mx-auto border border-white/10">
+                <img src={friend.photo || "https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1974"} alt="friend" className="w-full h-full object-cover" />
+              </div>
+              <p className="text-[10px] font-bold text-slate-300 mt-1.5 truncate">{friend.name || 'Jitu'}</p>
+              <p className="text-[8px] text-green-400 font-mono mt-0.5">{friend.kd || '0.00'}+ KD</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom Nav App Bar Frame Matrix */}
+      <div className="fixed bottom-0 left-0 right-0 h-16 bg-[#070b14]/90 backdrop-blur-lg border-t border-white/5 flex items-center justify-around z-50 px-2">
+        {[
+          { label: 'Home', active: true, click: () => navigate('/') },
+          { label: 'Friends', click: () => navigate('/friends') },
+          { label: 'Leaderboard', click: () => navigate('/leaderboard') },
+          { label: 'Gallery', click: () => navigate('/gallery') },
+          { label: 'Admin', click: () => navigate('/admin') },
+        ].map((tab) => (
+          <button 
+            key={tab.label}
+            onClick={tab.click}
+            className={`flex flex-col items-center justify-center p-1 text-[10px] font-bold ${tab.active ? 'text-[#00F0FF]' : 'text-slate-500'}`}
+          >
+            <span className="text-base mb-0.5">{tab.label === 'Home' ? '🏠' : tab.label === 'Friends' ? '👥' : tab.label === 'Leaderboard' ? '🏆' : tab.label === 'Gallery' ? '🖼️' : '⚙️'}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
     </div>
   );
-        }
-                     
+         }
+          
