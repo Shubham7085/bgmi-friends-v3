@@ -45,7 +45,8 @@ return { years, months, days, hours, mins, totalDays };
 
 function PartnerSection({ partner }: { partner: PartnerData }) {
 const [counter, setCounter] = useState(() => calcAnniversary(partner.playingTogetherSince));
-const intervalRef = useRef>();
+const intervalRef = useRef<any>(null);
+  
 
 useEffect(() => {
 if (!partner.playingTogetherSince) return;
