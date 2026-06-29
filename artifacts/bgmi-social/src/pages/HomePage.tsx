@@ -287,15 +287,16 @@ export default function HomePage() {
 
       {/* ─── HERO BANNER ─────────────────────────────── */}
       <div className="relative w-full h-[320px] overflow-hidden rounded-b-[40px]">
-        {/* bg image */}
-        <div className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: profile?.heroBackground
-              backgroundSize: "cover",
-               backgroundPosition: "center center",
-              ? `url(${profile.heroBackground})`
-              : 'linear-gradient(135deg,#0a1628,#0d1f3c,#070B14)',
-          }} />
+        <div
+  className="absolute inset-0 bg-cover bg-center"
+  style={{
+    backgroundImage: profile?.heroBackground
+      ? `url(${profile.heroBackground})`
+      : "linear-gradient(135deg,#0a1628,#0d1f3c,#070B14)",
+    backgroundSize: "cover",
+    backgroundPosition: "center center",
+  }}
+/>
         {/* strong dark overlay so content is always readable */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(7,11,20,0.55) 0%,rgba(7,11,20,0.75) 60%,#070B14 100%)' }} />
         {/* subtle grid */}
