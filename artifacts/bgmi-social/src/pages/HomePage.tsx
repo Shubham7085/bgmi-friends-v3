@@ -317,7 +317,94 @@ export default function HomePage() {
           </motion.div>
         )}
       </div>
+      
+{/* Premium Animated Background */}
+<div className="absolute inset-0 overflow-hidden pointer-events-none">
 
+  <motion.div
+    animate={{
+      scale: [1, 1.15, 1],
+      opacity: [0.18, 0.32, 0.18],
+    }}
+    transition={{
+      duration: 8,
+      repeat: Infinity,
+      ease: "easeInOut",
+    }}
+    className="absolute -top-24 -left-24 w-72 h-72 rounded-full"
+    style={{
+      background:
+        "radial-gradient(circle,#00F0FF 0%,transparent 70%)",
+      filter: "blur(70px)",
+    }}
+  />
+
+  <motion.div
+    animate={{
+      scale: [1, 1.25, 1],
+      opacity: [0.08, 0.22, 0.08],
+    }}
+    transition={{
+      duration: 9,
+      repeat: Infinity,
+      ease: "easeInOut",
+    }}
+    className="absolute -bottom-20 right-0 w-80 h-80 rounded-full"
+    style={{
+      background:
+        "radial-gradient(circle,#A855F7 0%,transparent 70%)",
+      filter: "blur(80px)",
+    }}
+  />
+
+  <motion.div
+    animate={{
+      rotate: 360,
+    }}
+    transition={{
+      duration: 45,
+      repeat: Infinity,
+      ease: "linear",
+    }}
+    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+               w-[340px] h-[340px] rounded-full"
+    style={{
+      border: "1px solid rgba(0,240,255,.06)",
+    }}
+  />
+
+</div>
+
+{/* Floating Particles */}
+
+{[...Array(8)].map((_, i) => (
+  <motion.div
+    key={i}
+    className="absolute rounded-full"
+    style={{
+      width: 4 + i,
+      height: 4 + i,
+      background:
+        i % 2
+          ? "#00F0FF"
+          : "#A855F7",
+
+      left: `${8 + i * 11}%`,
+      top: `${15 + (i % 4) * 18}%`,
+      opacity: .45,
+      filter: "blur(.3px)",
+    }}
+    animate={{
+      y: [-8, 8, -8],
+      opacity: [.2, .8, .2],
+    }}
+    transition={{
+      duration: 2 + i,
+      repeat: Infinity,
+    }}
+  />
+))}
+      
       {/* ─── MAIN PROFILE CARD ───────────────────────── */}
       <div className="px-4 -mt-8 relative z-10">
         <motion.div
