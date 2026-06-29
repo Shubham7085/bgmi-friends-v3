@@ -286,11 +286,13 @@ export default function HomePage() {
       </div>
 
       {/* ─── HERO BANNER ─────────────────────────────── */}
-      <div className="relative w-full h-44 overflow-hidden">
+      <div className="relative w-full h-[320px] overflow-hidden rounded-b-[40px]">
         {/* bg image */}
         <div className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: profile?.heroBackground
+              backgroundSize: "cover",
+               backgroundPosition: "center center",
               ? `url(${profile.heroBackground})`
               : 'linear-gradient(135deg,#0a1628,#0d1f3c,#070B14)',
           }} />
