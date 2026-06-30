@@ -9,13 +9,6 @@ import { staggerContainer, fadeInUp } from '../utils/animations';
 import { useNavigate } from 'react-router-dom';
 import { getKdColor, getKdDot, formatKd } from '../utils/kdColor';
 
-const quickActions = [
-  { label: 'All Friends', icon: UsersIcon, path: '/friends', color: '#00F0FF' },
-  { label: 'Top 10', icon: TrophyIcon, path: '/leaderboard', color: '#FFD700' },
-  { label: 'Gallery', icon: ImageIcon, path: '/gallery', color: '#FF6B6B' },
-  { label: 'Statistics', icon: BarChartIcon, path: '/statistics', color: '#4ECDC4' },
-];
-
 function UsersIcon(p: any) { return <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>; }
 function TrophyIcon(p: any) { return <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 19.8 7 21h10c0-1.2-.85-2.25-1.97-2.79-.5-.23-.97-.66-.97-1.21v-2.34"/><path d="M8 8h8v6a4 4 0 0 1-8 0V8z"/></svg>; }
 function ImageIcon(p: any) { return <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>; }
@@ -466,39 +459,6 @@ export default function HomePage() {
           </GlassCard>
         </motion.section>
       )}
-
-      {/* Quick Actions */}
-      <motion.section
-        className="px-5 mt-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-      >
-        <h3 className="text-sm font-bold text-[#00F0FF] mb-3 font-gaming">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {quickActions.map((action, i) => (
-            <motion.div
-              key={action.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.8 + i * 0.05 }}
-            >
-              <GlassCard className="p-4 cursor-pointer group" onClick={() => navigate(action.path)}>
-                <div className="flex items-center justify-between mb-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: `${action.color}15`, border: `1px solid ${action.color}30` }}
-                  >
-                    <action.icon className="w-5 h-5" style={{ color: action.color }} />
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-[#64748B] group-hover:text-[#00F0FF] transition-colors" />
-                </div>
-                <p className="text-sm font-medium text-[#E2E8F0]">{action.label}</p>
-              </GlassCard>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
 
       {/* Featured Friends */}
       {friends.length > 0 && (
