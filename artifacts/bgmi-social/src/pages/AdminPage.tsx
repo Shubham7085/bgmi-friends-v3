@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User, Users, Trophy, Image, Settings,
+  User, Users, Image, Settings,
   Save, Plus, Trash2, Upload, LogOut, Globe, Heart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -9,22 +9,19 @@ import { useNavigate } from 'react-router-dom';
 import {
   getProfile, updateProfile, getSocialLinks, updateSocialLinks,
   getFriends, addFriend, updateFriend, deleteFriend,
-  getClan, updateClan, getSquad, updateSquad,
   getGallery, addGalleryImage, deleteGalleryImage,
   getSettings, updateSettings, uploadImage, initializeDefaultData
 } from '../data/firebaseService';
-import type { ProfileData, SocialLinks, Friend, ClanData, SquadData, GalleryImage, SiteSettings, PartnerData } from '../types';
+import type { ProfileData, SocialLinks, Friend, GalleryImage, SiteSettings, PartnerData } from '../types';
 import GlassCard from '../components/ui/GlassCard';
 import { getKdColor, getKdDot, formatKd } from '../utils/kdColor';
 
-type AdminTab = 'profile' | 'partner' | 'friends' | 'clan' | 'squad' | 'gallery' | 'social' | 'settings';
+type AdminTab = 'profile' | 'partner' | 'friends' | 'gallery' | 'social' | 'settings';
 
 const tabs: { id: AdminTab; label: string; icon: any }[] = [
   { id: 'profile',  label: 'Profile',  icon: User },
   { id: 'partner',  label: 'Partner',  icon: Heart },
   { id: 'friends',  label: 'Friends',  icon: Users },
-  { id: 'clan',     label: 'Clan',     icon: Trophy },
-  { id: 'squad',    label: 'Squad',    icon: Users },
   { id: 'gallery',  label: 'Gallery',  icon: Image },
   { id: 'social',   label: 'Social',   icon: Globe },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -53,8 +50,6 @@ export default function AdminPage() {
   const [profile, setProfile] = useState<Partial<ProfileData>>({});
   const [social, setSocial] = useState<Partial<SocialLinks>>({});
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [clan, setClan] = useState<Partial<ClanData>>({});
-  const [squad, setSquad] = useState<Partial<SquadData>>({});
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [settings, setSettings] = useState<Partial<SiteSettings>>({});
   const [partner, setPartner] = useState<PartnerData>(DEFAULT_PARTNER);
@@ -73,15 +68,13 @@ export default function AdminPage() {
   const loadAllData = async () => {
     try {
       await initializeDefaultData();
-      const [p, s, f, c, sq, g, st] = await Promise.all([
+      const [p, s, f, g, st] = await Promise.all([
         getProfile(), getSocialLinks(), getFriends(),
-        getClan(), getSquad(), getGallery(), getSettings()
+        getGallery(), getSettings()
       ]);
       if (p) { setProfile(p); if (p.partner) setPartner({ ...DEFAULT_PARTNER, ...p.partner }); }
       if (s) setSocial(s);
       if (f) setFriends(f);
-      if (c) setClan(c);
-      if (sq) setSquad(sq);
       if (g) setGallery(g);
       if (st) setSettings(st);
     } catch (e) {
@@ -123,24 +116,6 @@ export default function AdminPage() {
     finally { setSaving(false); }
   };
 
-  const handleSaveClan = async () => {
-    setSaving(true);
-    try {
-      await updateClan(clan);
-      showMessage('Clan saved!');
-    } catch { showMessage('Error saving clan'); }
-    finally { setSaving(false); }
-  };
-
-  const handleSaveSquad = async () => {
-    setSaving(true);
-    try {
-      await updateSquad(squad);
-      showMessage('Squad saved!');
-    } catch { showMessage('Error saving squad'); }
-    finally { setSaving(false); }
-  };
-
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
@@ -161,10 +136,6 @@ export default function AdminPage() {
         const key = field.replace('profile.', '') as keyof ProfileData;
         setProfile(prev => ({ ...prev, [key]: url }));
         await updateProfile({ [key]: url });
-      } else if (field.startsWith('clan.')) {
-        const key = field.replace('clan.', '') as keyof ClanData;
-        setClan(prev => ({ ...prev, [key]: url }));
-        await updateClan({ [key]: url });
       }
       showMessage('Image uploaded!');
     } catch { showMessage('Upload failed.'); }
@@ -746,48 +717,6 @@ export default function AdminPage() {
           </motion.div>
         )}
 
-        {/* ── Clan Tab ── */}
-        {activeTab === 'clan' && (
-          <motion.div key="clan" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <GlassCard className="p-4">
-              <h3 className="text-sm font-bold text-[#00F0FF] mb-4 font-gaming">Clan Settings</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className={labelClass}>Clan Logo</label>
-                  <div className="flex items-center gap-3">
-                    {clan.logo && <img src={clan.logo} className="w-12 h-12 rounded-xl object-cover border border-[#00F0FF]/20" alt="Clan" />}
-                    <label className={`flex items-center gap-2 px-3 py-2 rounded-xl btn-primary text-xs cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                      <Upload className="w-3.5 h-3.5" />Upload
-                      <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => handleImageUpload(e, 'clan.logo')} />
-                    </label>
-                  </div>
-                </div>
-                <div><label className={labelClass}>Clan Name</label><input type="text" value={clan.name || ''} onChange={(e) => setClan(prev => ({ ...prev, name: e.target.value }))} className={inputClass} /></div>
-                <div><label className={labelClass}>Members</label><input type="number" value={clan.members || 0} onChange={(e) => setClan(prev => ({ ...prev, members: parseInt(e.target.value) || 0 }))} className={inputClass} /></div>
-                <div><label className={labelClass}>Description</label><textarea value={clan.description || ''} onChange={(e) => setClan(prev => ({ ...prev, description: e.target.value }))} className={`${inputClass} min-h-[80px] resize-none`} /></div>
-                <button onClick={handleSaveClan} disabled={saving} className="w-full py-2.5 rounded-xl btn-primary text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
-                  <Save className="w-4 h-4" />{saving ? 'Saving...' : 'Save Clan'}
-                </button>
-              </div>
-            </GlassCard>
-          </motion.div>
-        )}
-
-        {/* ── Squad Tab ── */}
-        {activeTab === 'squad' && (
-          <motion.div key="squad" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <GlassCard className="p-4">
-              <h3 className="text-sm font-bold text-[#00F0FF] mb-4 font-gaming">Squad Settings</h3>
-              <div className="space-y-4">
-                <div><label className={labelClass}>Squad Name</label><input type="text" value={squad.name || ''} onChange={(e) => setSquad(prev => ({ ...prev, name: e.target.value }))} className={inputClass} /></div>
-                <button onClick={handleSaveSquad} disabled={saving} className="w-full py-2.5 rounded-xl btn-primary text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
-                  <Save className="w-4 h-4" />{saving ? 'Saving...' : 'Save Squad'}
-                </button>
-              </div>
-            </GlassCard>
-          </motion.div>
-        )}
-
         {/* ── Gallery Tab ── */}
         {activeTab === 'gallery' && (
           <motion.div key="gallery" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -844,6 +773,7 @@ export default function AdminPage() {
                 <div><label className={labelClass}>Site Name</label><input type="text" value={settings.siteName || ''} onChange={(e) => setSettings(prev => ({ ...prev, siteName: e.target.value }))} className={inputClass} /></div>
                 <div><label className={labelClass}>Loading Text</label><input type="text" value={settings.loadingText || ''} onChange={(e) => setSettings(prev => ({ ...prev, loadingText: e.target.value }))} className={inputClass} /></div>
                 <div><label className={labelClass}>Loading Subtitle</label><input type="text" value={settings.loadingSubtitle || ''} onChange={(e) => setSettings(prev => ({ ...prev, loadingSubtitle: e.target.value }))} className={inputClass} /></div>
+                <div><label className={labelClass}>Background Music URL</label><input type="text" placeholder="https://res.cloudinary.com/.../song.mp3" value={settings.backgroundMusicUrl || ''} onChange={(e) => setSettings(prev => ({ ...prev, backgroundMusicUrl: e.target.value }))} className={inputClass} /></div>
                 <button onClick={handleSaveSettings} disabled={saving} className="w-full py-2.5 rounded-xl btn-primary text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
                   <Save className="w-4 h-4" />{saving ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -854,4 +784,4 @@ export default function AdminPage() {
       </AnimatePresence>
     </div>
   );
-}
+                            }
