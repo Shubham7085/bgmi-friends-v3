@@ -9,8 +9,6 @@ const menuItems = [
   { label: 'Friends', path: '/friends' },
   { label: 'Leaderboard', path: '/leaderboard' },
   { label: 'Gallery', path: '/gallery' },
-  { label: 'Clan', path: '/clan' },
-  { label: 'Squad', path: '/squad' },
 ];
 
 export default function Header() {
@@ -150,4 +148,5 @@ export default function Header() {
       </AnimatePresence>
     </>
   );
-}
+                                                                            }
+
