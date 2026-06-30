@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Heart, Award, Target, ChevronRight, Instagram, Youtube, Facebook, MessageCircle, Swords, Star, Wifi, WifiOff } from 'lucide-react';
+import { MapPin, Calendar, Heart, Award, Target, ChevronRight, Instagram, Youtube, Facebook, MessageCircle, Swords, Star, Wifi, WifiOff, Volume2, VolumeX } from 'lucide-react';
 import { getProfile, getSocialLinks, getFriends, getGallery, getSettings } from '../data/firebaseService';
 import type { ProfileData, SocialLinks, Friend, GalleryImage, SiteSettings, PartnerData } from '../types';
 import GlassCard from '../components/ui/GlassCard';
@@ -171,8 +171,10 @@ export default function HomePage() {
   const [social, setSocial] = useState<SocialLinks | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [, setGallery] = useState<GalleryImage[]>([]);
-  const [, setSettings] = useState<SiteSettings | null>(null);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -495,6 +497,29 @@ export default function HomePage() {
           </div>
         </motion.section>
       )}
+
+      {/* Background Music Player */}
+      {(settings as any)?.backgroundMusicUrl && (
+        <>
+          <motion.button
+            onClick={() => {
+              if (!audioRef.current) return;
+              if (isMusicPlaying) {
+                audioRef.current.pause();
+              } else {
+                audioRef.current.play().catch((e) => console.log('Playback blocked:', e));
+              }
+              setIsMusicPlaying(!isMusicPlaying);
+            }}
+            whileTap={{ scale: 0.9 }}
+            className="fixed bottom-24 right-5 z-50 p-3 rounded-full bg-cyan-500/20 border border-cyan-500/50 backdrop-blur-md text-white shadow-lg"
+            aria-label={isMusicPlaying ? 'Mute background music' : 'Play background music'}
+          >
+            {isMusicPlaying ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          </motion.button>
+          <audio ref={audioRef} loop src={(settings as any).backgroundMusicUrl} />
+        </>
+      )}
     </div>
   );
-}
+    }
