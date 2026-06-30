@@ -4,8 +4,6 @@ import { MapPin, Calendar, Heart, Award, Target, ChevronRight, Instagram, Youtub
 import { getProfile, getSocialLinks, getFriends, getGallery, getSettings } from '../data/firebaseService';
 import type { ProfileData, SocialLinks, Friend, GalleryImage, SiteSettings, PartnerData } from '../types';
 import GlassCard from '../components/ui/GlassCard';
-import AnimatedCounter from '../components/ui/AnimatedCounter';
-import { staggerContainer, fadeInUp } from '../utils/animations';
 import { useNavigate } from 'react-router-dom';
 import { getKdColor, getKdDot, formatKd } from '../utils/kdColor';
 
@@ -217,8 +215,139 @@ export default function HomePage() {
 
   return (
     <div className="pb-24">
-      
-      
+      {/* Hero */}
+      <section className="relative h-[560px] overflow-hidden">
+        {/* Background */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: profile?.heroBackground
+              ? `url(${profile.heroBackground})`
+              : "linear-gradient(135deg,#050816,#081426,#050816)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/55" />
+
+        {/* Neon Glow */}
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[420px] h-[420px] rounded-full bg-cyan-500/20 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[260px] h-[260px] rounded-full bg-fuchsia-600/20 blur-[100px]" />
+
+        {/* Bottom Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#070B14]/40 to-[#070B14]" />
+
+        <div className="relative z-10 flex flex-col items-center justify-end h-full px-5 pb-8">
+          
+          {/* Avatar */}
+          <motion.div
+            initial={{ opacity: 0, scale: .8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: .6 }}
+            className="relative mb-5"
+          >
+            {/* Glow Ring */}
+            <div className="absolute -inset-3 rounded-full bg-cyan-400/20 blur-2xl" />
+
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 15,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+              className="absolute inset-0 rounded-full border-2 border-cyan-400/40 border-dashed"
+            />
+
+            <div
+              className="relative w-36 h-36 rounded-full overflow-hidden border-[4px]"
+              style={{
+                borderColor: "#00F0FF",
+                boxShadow: "0 0 35px rgba(0,240,255,.45),0 0 90px rgba(0,240,255,.18)"
+              }}
+            >
+              {profile?.profilePhoto ? (
+                <img
+                  src={profile.profilePhoto}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500/20 to-fuchsia-600/20">
+                  <Swords className="w-14 h-14 text-cyan-400" />
+                </div>
+              )}
+            </div>
+
+            {/* Online */}
+            <motion.div
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-green-500 border-4 border-[#070B14]"
+            />
+          </motion.div>
+
+          {/* Name & Info (Centered Design) */}
+          <motion.div
+            className="flex flex-col items-center text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h1 className="text-3xl md:text-4xl font-bold text-white font-gaming tracking-wide" style={{ textShadow: '0 0 10px rgba(0,240,255,0.5)' }}>
+              {profile?.ign || 'Your IGN'}
+            </h1>
+            <p className="text-sm text-[#94A3B8] mt-1">
+              {profile?.realName || 'Your Name'}
+            </p>
+
+            <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
+              <span className="text-xs bg-[#00F0FF]/10 text-[#00F0FF] px-3 py-1.5 rounded-md border border-[#00F0FF]/20 backdrop-blur-sm">
+                ID: {profile?.bgmiId || '---'}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-[#94A3B8] bg-white/5 px-3 py-1.5 rounded-md border border-white/10">
+                <MapPin className="w-3 h-3" />
+                {profile?.country || 'Country'}
+              </span>
+              {kd > 0 && (
+                <span
+                  className="text-xs font-bold px-3 py-1.5 rounded-md border backdrop-blur-sm"
+                  style={{ color: kdColor, borderColor: `${kdColor}40`, background: `${kdColor}12` }}
+                >
+                  {getKdDot(kd)} {formatKd(kd)}+ KD
+                </span>
+              )}
+            </div>
+
+            {/* Badges */}
+            {badges.length > 0 && (
+              <motion.div
+                className="flex flex-wrap justify-center gap-2 mt-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                {badges.map(badge => {
+                  const b = BADGE_MAP[badge];
+                  if (!b) return null;
+                  return (
+                    <span
+                      key={badge}
+                      className="text-[10px] px-3 py-1 rounded-full border font-semibold flex items-center gap-1"
+                      style={{ color: b.color, borderColor: `${b.color}40`, background: `${b.color}15`, boxShadow: `0 0 10px ${b.glow}` }}
+                    >
+                      {b.icon} {b.label}
+                    </span>
+                  );
+                })}
+              </motion.div>
+            )}
+          </motion.div>
+          
+        </div>
+      </section>
 
       {/* Partner Section */}
       {profile?.partner?.name && <PartnerSection partner={profile.partner} />}
@@ -253,89 +382,6 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-
-            {/* Hero */}
-<section className="relative h-[560px] overflow-hidden">
-
-  {/* Background */}
-  <div
-    className="absolute inset-0 bg-cover bg-center"
-    style={{
-      backgroundImage: profile?.heroBackground
-        ? `url(${profile.heroBackground})`
-        : "linear-gradient(135deg,#050816,#081426,#050816)",
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    }}
-  />
-
-  {/* Dark Overlay */}
-  <div className="absolute inset-0 bg-black/55" />
-
-  {/* Neon Glow */}
-  <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[420px] h-[420px] rounded-full bg-cyan-500/20 blur-[120px]" />
-  <div className="absolute bottom-0 right-0 w-[260px] h-[260px] rounded-full bg-fuchsia-600/20 blur-[100px]" />
-
-  {/* Bottom Gradient */}
-  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#070B14]/30 to-[#070B14]" />
-
-  <div className="relative z-10 flex flex-col items-center justify-end h-full px-5 pb-8">
-
-    {/* Avatar */}
-    <motion.div
-      initial={{ opacity: 0, scale: .8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: .6 }}
-      className="relative mb-5"
-    >
-
-      {/* Glow Ring */}
-      <div className="absolute -inset-3 rounded-full bg-cyan-400/20 blur-2xl" />
-
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{
-          duration: 15,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-        className="absolute inset-0 rounded-full border-2 border-cyan-400/40 border-dashed"
-      />
-
-      <div
-        className="relative w-36 h-36 rounded-full overflow-hidden border-[4px]"
-        style={{
-          borderColor: "#00F0FF",
-          boxShadow:
-            "0 0 35px rgba(0,240,255,.45),0 0 90px rgba(0,240,255,.18)"
-        }}
-      >
-        {profile?.profilePhoto ? (
-          <img
-            src={profile.profilePhoto}
-            alt="Profile"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500/20 to-fuchsia-600/20">
-            <Swords className="w-14 h-14 text-cyan-400" />
-          </div>
-        )}
-      </div>
-
-      {/* Online */}
-      <motion.div
-        animate={{
-          scale: [1, 1.3, 1]
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity
-        }}
-        className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-green-500 border-4 border-[#070B14]"
-      />
-    </motion.div>
-            
 
             {[
               { label: 'Collection Level', value: `${profile?.collectionLevel || 0}+`, icon: Target,    color: '#B829DD' },
@@ -486,4 +532,4 @@ export default function HomePage() {
       )}
     </div>
   );
-            }
+}
