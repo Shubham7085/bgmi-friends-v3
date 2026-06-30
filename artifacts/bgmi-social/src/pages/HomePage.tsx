@@ -215,7 +215,8 @@ export default function HomePage() {
 
   return (
     <div className="pb-24">
-            {/* Hero */}
+      
+      {/* Hero */}
       <motion.section
         className="px-5 pt-20"
         initial={{ opacity: 0, y: 20 }}
@@ -345,9 +346,6 @@ export default function HomePage() {
           </div>
         </div>
       </motion.section>
-      
-        </div>
-      </section>
 
       {/* Partner Section */}
       {profile?.partner?.name && <PartnerSection partner={profile.partner} />}
