@@ -189,3 +189,4 @@ export async function initializeDefaultData() {
 
   await batch.commit();
 }
+
