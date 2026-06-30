@@ -11,8 +11,6 @@ import FriendsPage from './pages/FriendsPage';
 import FriendProfilePage from './pages/FriendProfilePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import GalleryPage from './pages/GalleryPage';
-import ClanPage from './pages/ClanPage';
-import SquadPage from './pages/SquadPage';
 import StatisticsPage from './pages/StatisticsPage';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
@@ -35,8 +33,6 @@ function AnimatedRoutes() {
           <Route path="/friend/:id" element={<FriendProfilePage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
-          <Route path="/clan" element={<ClanPage />} />
-          <Route path="/squad" element={<SquadPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin" element={<AdminPage />} />
