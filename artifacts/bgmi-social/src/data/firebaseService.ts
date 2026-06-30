@@ -3,7 +3,7 @@ import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, orderBy, writeBatch
 } from 'firebase/firestore';
-import type { ProfileData, SocialLinks, Friend, ClanData, SquadData, GalleryImage, SiteSettings } from '../types';
+import type { ProfileData, SocialLinks, Friend, GalleryImage, SiteSettings } from '../types';
 
 const COLLECTIONS = {
   PROFILE: 'profile',
@@ -60,25 +60,6 @@ export async function deleteFriend(id: string) {
   await deleteDoc(doc(db, COLLECTIONS.FRIENDS, id));
 }
 
-// Clan
-export async function getClan(): Promise<ClanData | null> {
-  const snap = await getDoc(doc(db, COLLECTIONS.CLAN, 'main'));
-  return snap.exists() ? (snap.data() as ClanData) : null;
-}
-
-export async function updateClan(data: Partial<ClanData>) {
-  await setDoc(doc(db, COLLECTIONS.CLAN, 'main'), data, { merge: true });
-}
-
-// Squad
-export async function getSquad(): Promise<SquadData | null> {
-  const snap = await getDoc(doc(db, COLLECTIONS.SQUAD, 'main'));
-  return snap.exists() ? (snap.data() as SquadData) : null;
-}
-
-export async function updateSquad(data: Partial<SquadData>) {
-  await setDoc(doc(db, COLLECTIONS.SQUAD, 'main'), data, { merge: true });
-}
 
 // Gallery
 export async function getGallery(): Promise<GalleryImage[]> {
@@ -190,3 +171,4 @@ export async function initializeDefaultData() {
   await batch.commit();
 }
 
+        
