@@ -63,13 +63,11 @@ function PartnerSection({ partner }: { partner: PartnerData }) {
           boxShadow: '0 0 30px rgba(244,63,94,0.12), 0 0 60px rgba(168,85,247,0.06)',
         }}
       >
-        {/* Decorative glow orb */}
         <div
           className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none"
           style={{ background: 'radial-gradient(circle, #F43F5E, transparent)' }}
         />
 
-        {/* Header */}
         <div className="flex items-center gap-2 mb-4">
           <span className="text-lg">❤️</span>
           <h3 className="text-sm font-bold font-gaming" style={{ color: '#F43F5E' }}>Partner</h3>
@@ -81,9 +79,7 @@ function PartnerSection({ partner }: { partner: PartnerData }) {
           </span>
         </div>
 
-        {/* Partner card */}
         <div className="flex items-center gap-4">
-          {/* Photo */}
           <div className="relative shrink-0">
             <div
               className="w-20 h-20 rounded-2xl overflow-hidden border-2"
@@ -112,7 +108,6 @@ function PartnerSection({ partner }: { partner: PartnerData }) {
             )}
           </div>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <p className="text-base font-bold text-white font-gaming truncate">{partner.name}</p>
             <p className="text-xs text-[#94A3B8] mb-1 truncate">UID: {partner.uid}</p>
@@ -140,7 +135,6 @@ function PartnerSection({ partner }: { partner: PartnerData }) {
           </div>
         </div>
 
-        {/* Anniversary counter */}
         {counter && partner.playingTogetherSince && (
           <div className="mt-4 pt-4 border-t border-[#F43F5E]/15">
             <div className="flex items-center gap-1.5 mb-2">
@@ -216,7 +210,7 @@ export default function HomePage() {
   return (
     <div className="pb-24">
       
-      {/* Hero */}
+      {/* Hero Section - Matched exactly with Partner Card */}
       <motion.section
         className="px-5 pt-20"
         initial={{ opacity: 0, y: 20 }}
@@ -224,126 +218,99 @@ export default function HomePage() {
         transition={{ duration: 0.6 }}
       >
         <div
-          className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-end min-h-[420px] p-6"
+          className="rounded-2xl p-4 relative overflow-hidden"
           style={{
-            border: '1px solid rgba(0, 240, 255, 0.4)',
-            boxShadow: '0 0 25px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.1)',
-            background: 'linear-gradient(135deg, rgba(0,240,255,0.05), rgba(7,11,20,0.9))'
+            background: 'linear-gradient(135deg, rgba(244,63,94,0.08), rgba(168,85,247,0.08), rgba(7,11,20,0.9))',
+            border: '1px solid rgba(244,63,94,0.35)',
+            boxShadow: '0 0 30px rgba(244,63,94,0.12), 0 0 60px rgba(168,85,247,0.06)',
           }}
         >
-          {/* Background Image - High opacity so it is clearly visible */}
+          {/* Decorative glow orb */}
           <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: profile?.heroBackground
-                ? `url(${profile.heroBackground})`
-                : "linear-gradient(135deg,#050816,#081426,#050816)",
-              opacity: 0.85 
-            }}
+            className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none"
+            style={{ background: 'radial-gradient(circle, #F43F5E, transparent)' }}
           />
 
-          {/* Light Bottom Gradient just to make the text readable */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#070B14] via-[#070B14]/50 to-transparent" />
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-lg">🛡️</span>
+            <h3 className="text-sm font-bold font-gaming" style={{ color: '#F43F5E' }}>My Profile</h3>
+            {profile?.bgmiId && (
+              <span
+                className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold border"
+                style={{ color: '#00F0FF', borderColor: 'rgba(0,240,255,0.3)', background: 'rgba(0,240,255,0.1)' }}
+              >
+                ID: {profile.bgmiId}
+              </span>
+            )}
+          </div>
 
-          {/* Content */}
-          <div className="relative z-10 flex flex-col items-center w-full mt-8">
-            
-            {/* Avatar */}
-            <motion.div
-              initial={{ opacity: 0, scale: .8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: .6 }}
-              className="relative mb-5"
-            >
-              {/* Glow Ring */}
-              <div className="absolute -inset-3 rounded-full bg-cyan-400/20 blur-xl" />
-
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{
-                  duration: 15,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-                className="absolute inset-0 rounded-full border-2 border-cyan-400/40 border-dashed"
-              />
-
+          {/* Profile card layout */}
+          <div className="flex items-center gap-4">
+            {/* Photo */}
+            <div className="relative shrink-0">
               <div
-                className="relative w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-[3px]"
-                style={{
-                  borderColor: "#00F0FF",
-                  boxShadow: "0 0 25px rgba(0,240,255,.4),0 0 50px rgba(0,240,255,.15)"
-                }}
+                className="w-20 h-20 rounded-2xl overflow-hidden border-2"
+                style={{ borderColor: 'rgba(244,63,94,0.5)', boxShadow: '0 0 20px rgba(244,63,94,0.25)' }}
               >
                 {profile?.profilePhoto ? (
-                  <img
-                    src={profile.profilePhoto}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={profile.profilePhoto} alt={profile.ign} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500/20 to-fuchsia-600/20">
-                    <Swords className="w-12 h-12 text-cyan-400" />
+                  <div className="w-full h-full bg-gradient-to-br from-[#F43F5E]/20 to-[#A855F7]/20 flex items-center justify-center">
+                    <Swords className="w-8 h-8 text-[#F43F5E]/50" />
                   </div>
                 )}
               </div>
-
-              {/* Online Status */}
               <motion.div
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-[#070B14] flex items-center justify-center"
                 animate={{ scale: [1, 1.3, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-green-500 border-4 border-[#070B14]"
-              />
-            </motion.div>
-
-            {/* Name & Info */}
-            <div className="flex flex-col items-center text-center">
-              <h1 className="text-3xl md:text-4xl font-bold text-white font-gaming tracking-wide" style={{ textShadow: '0 0 10px rgba(0,240,255,0.5)' }}>
-                {profile?.ign || 'Your IGN'}
-              </h1>
-              <p className="text-sm text-[#94A3B8] mt-1">
-                {profile?.realName || 'Your Name'}
-              </p>
-
-              <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
-                <span className="text-xs bg-[#00F0FF]/10 text-[#00F0FF] px-3 py-1.5 rounded-md border border-[#00F0FF]/20 backdrop-blur-sm">
-                  ID: {profile?.bgmiId || '---'}
-                </span>
-                <span className="flex items-center gap-1 text-xs text-[#94A3B8] bg-white/5 px-3 py-1.5 rounded-md border border-white/10">
-                  <MapPin className="w-3 h-3" />
-                  {profile?.country || 'Country'}
-                </span>
-                {kd > 0 && (
-                  <span
-                    className="text-xs font-bold px-3 py-1.5 rounded-md border backdrop-blur-sm"
-                    style={{ color: kdColor, borderColor: `${kdColor}40`, background: `${kdColor}12` }}
-                  >
-                    {getKdDot(kd)} {formatKd(kd)}+ KD
-                  </span>
-                )}
-              </div>
-
-              {/* Badges */}
-              {badges.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mt-4">
-                  {badges.map(badge => {
-                    const b = BADGE_MAP[badge];
-                    if (!b) return null;
-                    return (
-                      <span
-                        key={badge}
-                        className="text-[10px] px-3 py-1 rounded-full border font-semibold flex items-center gap-1"
-                        style={{ color: b.color, borderColor: `${b.color}40`, background: `${b.color}15`, boxShadow: `0 0 10px ${b.glow}` }}
-                      >
-                        {b.icon} {b.label}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
+              >
+                <Wifi className="w-2.5 h-2.5 text-white" />
+              </motion.div>
             </div>
-            
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-bold text-white font-gaming truncate">{profile?.ign || 'Your IGN'}</p>
+              <p className="text-xs text-[#94A3B8] mb-1 truncate">{profile?.realName || 'Your Name'}</p>
+              
+              <div className="flex gap-3 mt-2">
+                {kd > 0 && (
+                  <div
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold"
+                    style={{ background: `${kdColor}12`, border: `1px solid ${kdColor}30`, color: kdColor }}
+                  >
+                    <span>{getKdDot(kd)}</span>
+                    <span>{formatKd(kd)}+ KD</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold bg-white/5 border border-white/10 text-[#94A3B8]">
+                  <MapPin className="w-3 h-3" />
+                  <span>{profile?.country || 'Country'}</span>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Badges */}
+          {badges.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-[#F43F5E]/15 flex flex-wrap gap-2">
+              {badges.map(badge => {
+                const b = BADGE_MAP[badge];
+                if (!b) return null;
+                return (
+                  <span
+                    key={badge}
+                    className="text-[10px] px-2 py-0.5 rounded-full border font-semibold flex items-center gap-1"
+                    style={{ color: b.color, borderColor: `${b.color}40`, background: `${b.color}15` }}
+                  >
+                    {b.icon} {b.label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       </motion.section>
 
