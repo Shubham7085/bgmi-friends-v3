@@ -1,700 +1,596 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import {
-  MapPin, Heart, ChevronRight, Instagram,
-  Users, Trophy, Image, BarChart2, Settings,
-} from 'lucide-react';
+import { MapPin, Calendar, Heart, Award, Target, ChevronRight, Instagram, Youtube, Facebook, MessageCircle, Swords, Star, Wifi, WifiOff } from 'lucide-react';
 import { getProfile, getSocialLinks, getFriends, getGallery, getSettings } from '../data/firebaseService';
-import type { PartnerData } from '../types';
+import type { ProfileData, SocialLinks, Friend, GalleryImage, SiteSettings, PartnerData } from '../types';
 import GlassCard from '../components/ui/GlassCard';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { staggerContainer, fadeInUp } from '../utils/animations';
 import { useNavigate } from 'react-router-dom';
 import { getKdColor, getKdDot, formatKd } from '../utils/kdColor';
 
-// ── CONSTANTS ──────────────────────────────────────────────
 const quickActions = [
-  { label: 'All Friends',  icon: Users,    path: '/friends',     color: '#00F0FF' },
-  { label: 'Top 10',       icon: Trophy,   path: '/leaderboard', color: '#FFD700' },
-  { label: 'Gallery',      icon: Image,    path: '/gallery',     color: '#FF6B6B' },
-  { label: 'Statistics',   icon: BarChart2,path: '/statistics',  color: '#A855F7' },
+  { label: 'All Friends', icon: UsersIcon, path: '/friends', color: '#00F0FF' },
+  { label: 'Top 10', icon: TrophyIcon, path: '/leaderboard', color: '#FFD700' },
+  { label: 'Gallery', icon: ImageIcon, path: '/gallery', color: '#FF6B6B' },
+  { label: 'Statistics', icon: BarChartIcon, path: '/statistics', color: '#4ECDC4' },
 ];
 
-const BADGE_MAP: Record<string, { label: string; icon: string; color: string }> = {
-  verified: { label: 'Verified',  icon: '✔',  color: '#3B82F6' },
-  elite:    { label: 'Elite',     icon: '👑', color: '#FFD700' },
-  partner:  { label: 'Partner',   icon: '❤️', color: '#F43F5E' },
-  popular:  { label: 'Popular',   icon: '⭐', color: '#A855F7' },
+function UsersIcon(p: any) { return <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>; }
+function TrophyIcon(p: any) { return <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 19.8 7 21h10c0-1.2-.85-2.25-1.97-2.79-.5-.23-.97-.66-.97-1.21v-2.34"/><path d="M8 8h8v6a4 4 0 0 1-8 0V8z"/></svg>; }
+function ImageIcon(p: any) { return <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>; }
+function BarChartIcon(p: any) { return <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>; }
+
+const BADGE_MAP: Record<string, { label: string; icon: string; color: string; glow: string }> = {
+  verified: { label: 'Verified Player', icon: '✔',  color: '#3B82F6', glow: 'rgba(59,130,246,0.3)' },
+  elite:    { label: 'Elite Player',    icon: '👑', color: '#FFD700', glow: 'rgba(255,215,0,0.3)' },
+  partner:  { label: 'Partner',         icon: '❤️', color: '#F43F5E', glow: 'rgba(244,63,94,0.3)' },
+  popular:  { label: 'Popular Player',  icon: '⭐', color: '#A855F7', glow: 'rgba(168,85,247,0.3)' },
 };
 
-const NAV_TABS = [
-  { label: 'Home',        emoji: '🏠', path: '/' },
-  { label: 'Friends',     emoji: '👥', path: '/friends' },
-  { label: 'Leaderboard', emoji: '🏆', path: '/leaderboard' },
-  { label: 'Gallery',     emoji: '🖼️', path: '/gallery' },
-  { label: 'Admin',       emoji: '⚙️', path: '/admin' },
-];
-
-// ── UTILS ──────────────────────────────────────────────────
 function calcAnniversary(since: string) {
-  if (!since) return null;
-  const diff = Date.now() - new Date(since).getTime();
+  const start = new Date(since);
+  const now = new Date();
+  const diff = now.getTime() - start.getTime();
   if (diff < 0) return null;
   const totalDays = Math.floor(diff / 86400000);
-  return {
-    years:  Math.floor(totalDays / 365),
-    months: Math.floor((totalDays % 365) / 30),
-    days:   totalDays % 30,
-    hours:  Math.floor((diff % 86400000) / 3600000),
-    totalDays,
-  };
+  const years = Math.floor(totalDays / 365);
+  const months = Math.floor((totalDays % 365) / 30);
+  const days = totalDays % 30;
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  return { years, months, days, hours, mins, totalDays };
 }
 
-// ── SECTION HEADER ─────────────────────────────────────────
-function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <div className="w-[3px] h-4 rounded-full" style={{ background: 'linear-gradient(180deg,#00F0FF,#A855F7)' }} />
-        <span className="text-[11px] font-black text-white uppercase tracking-[0.12em]">{title}</span>
-      </div>
-      {action && (
-        <button onClick={onAction} className="text-[10px] font-bold" style={{ color: '#00F0FF' }}>{action} →</button>
-      )}
-    </div>
-  );
-}
-
-// ── PARTNER SECTION ────────────────────────────────────────
-const PartnerSection = memo(function PartnerSection({ partner }: { partner: PartnerData }) {
-  const [counter, setCounter] = useState(() => calcAnniversary(partner?.playingTogetherSince));
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+function PartnerSection({ partner }: { partner: PartnerData }) {
+  const [counter, setCounter] = useState(() => calcAnniversary(partner.playingTogetherSince));
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
-    if (!partner?.playingTogetherSince) return;
-    timerRef.current = setInterval(() => setCounter(calcAnniversary(partner.playingTogetherSince)), 60000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [partner?.playingTogetherSince]);
+    if (!partner.playingTogetherSince) return;
+    intervalRef.current = setInterval(() => {
+      setCounter(calcAnniversary(partner.playingTogetherSince));
+    }, 60000);
+    return () => clearInterval(intervalRef.current);
+  }, [partner.playingTogetherSince]);
 
-  if (!partner) return null;
-
-  const kd = partner?.kd ?? 0;
+  const kd = partner.kd ?? 0;
   const kdColor = getKdColor(kd);
 
   return (
-    <motion.div
-      className="px-4 mt-4"
-      initial={{ opacity: 0, y: 12 }}
+    <motion.section
+      className="px-5 mt-4"
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.35, duration: 0.4 }}
+      transition={{ delay: 0.35 }}
     >
       <div
         className="rounded-2xl p-4 relative overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg,rgba(244,63,94,0.09),rgba(168,85,247,0.06),rgba(10,14,26,0.98))',
-          border: '1px solid rgba(244,63,94,0.3)',
-          boxShadow: '0 4px 24px rgba(244,63,94,0.08)',
+          background: 'linear-gradient(135deg, rgba(244,63,94,0.08), rgba(168,85,247,0.08), rgba(7,11,20,0.9))',
+          border: '1px solid rgba(244,63,94,0.35)',
+          boxShadow: '0 0 30px rgba(244,63,94,0.12), 0 0 60px rgba(168,85,247,0.06)',
         }}
       >
-        {/* bg glow */}
-        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle,rgba(244,63,94,0.18),transparent 70%)', filter: 'blur(18px)' }} />
+        {/* Decorative glow orb */}
+        <div
+          className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #F43F5E, transparent)' }}
+        />
 
-        {/* header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1.5">
-            <Heart className="w-3.5 h-3.5 fill-[#F43F5E] text-[#F43F5E]" />
-            <span className="text-[10px] font-black text-[#F43F5E] tracking-widest uppercase">Gaming Partner</span>
-          </div>
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-black"
-            style={{ background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.28)', color: '#FFD700' }}>
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-lg">❤️</span>
+          <h3 className="text-sm font-bold font-gaming" style={{ color: '#F43F5E' }}>Partner</h3>
+          <span
+            className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold border"
+            style={{ color: '#FFD700', borderColor: 'rgba(255,215,0,0.3)', background: 'rgba(255,215,0,0.1)' }}
+          >
             👑 Elite Partner
           </span>
         </div>
 
-        {/* info row */}
-        <div className="flex items-center gap-3">
-          {/* avatar */}
-          <div className="relative flex-shrink-0">
-            <div className="w-14 h-14 rounded-xl overflow-hidden"
-              style={{ border: '2px solid rgba(244,63,94,0.45)', boxShadow: '0 0 14px rgba(244,63,94,0.25)' }}>
-              {partner.photo
-                ? <img src={partner.photo} alt={partner.name} className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center text-white font-black text-xl"
-                    style={{ background: 'linear-gradient(135deg,#1a0510,#2a0820)' }}>
-                    {partner.name?.[0] ?? '?'}
-                  </div>
-              }
+        {/* Partner card */}
+        <div className="flex items-center gap-4">
+          {/* Photo */}
+          <div className="relative shrink-0">
+            <div
+              className="w-20 h-20 rounded-2xl overflow-hidden border-2"
+              style={{ borderColor: 'rgba(244,63,94,0.5)', boxShadow: '0 0 20px rgba(244,63,94,0.25)' }}
+            >
+              {partner.photo ? (
+                <img src={partner.photo} alt={partner.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#F43F5E]/20 to-[#A855F7]/20 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-[#F43F5E]/50">{partner.name?.[0] || '?'}</span>
+                </div>
+              )}
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#070B14]"
-              style={{ background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.7)' }} />
+            {partner.isOnline ? (
+              <motion.div
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-[#070B14] flex items-center justify-center"
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Wifi className="w-2.5 h-2.5 text-white" />
+              </motion.div>
+            ) : (
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#374151] border-2 border-[#070B14] flex items-center justify-center">
+                <WifiOff className="w-2.5 h-2.5 text-[#94A3B8]" />
+              </div>
+            )}
           </div>
 
-          {/* details */}
+          {/* Info */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white truncate">{partner.name || '—'}</p>
-            <p className="text-[9px] text-slate-500 font-mono mt-0.5">UID: {partner.uid || '—'}</p>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
-                style={{ background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.25)', color: '#F43F5E' }}>❤️ Lover</span>
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black"
-                style={{ background: `${kdColor}18`, border: `1px solid ${kdColor}35`, color: kdColor }}>
-                {getKdDot(kd)} {formatKd(kd)} KD
+            <p className="text-base font-bold text-white font-gaming truncate">{partner.name}</p>
+            <p className="text-xs text-[#94A3B8] mb-1 truncate">UID: {partner.uid}</p>
+            {partner.relationshipStatus && (
+              <span
+                className="inline-block text-[10px] px-2 py-0.5 rounded-full border mb-2"
+                style={{ color: '#F43F5E', borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.1)' }}
+              >
+                {partner.relationshipStatus}
               </span>
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
-                style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)', color: '#A855F7' }}>
-                ⚡ {partner.synergy ?? 0}+ SYN
-              </span>
+            )}
+            <div className="flex gap-3">
+              <div
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold"
+                style={{ background: `${kdColor}12`, border: `1px solid ${kdColor}30`, color: kdColor }}
+              >
+                <span>{getKdDot(kd)}</span>
+                <span>{formatKd(kd)}+ KD</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold bg-[#FF6B6B]/10 border border-[#FF6B6B]/20 text-[#FF6B6B]">
+                <Heart className="w-3 h-3" />
+                <span>{partner.synergy}+ SYN</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* timer */}
+        {/* Anniversary counter */}
         {counter && partner.playingTogetherSince && (
-          <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-[9px] text-center text-slate-500 mb-2 uppercase tracking-wider">
-              Together since {partner.playingTogetherSince}
-            </p>
-            <div className="grid grid-cols-4 gap-1.5">
-              {[['YRS', counter.years], ['MON', counter.months], ['DAYS', counter.days], ['HRS', counter.hours]].map(([l, v]) => (
-                <div key={String(l)} className="py-2 rounded-xl text-center"
-                  style={{ background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.15)' }}>
-                  <p className="text-sm font-black text-[#F43F5E]">{v}</p>
-                  <p className="text-[7px] text-slate-500 uppercase tracking-wider">{l}</p>
+          <div className="mt-4 pt-4 border-t border-[#F43F5E]/15">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Calendar className="w-3.5 h-3.5 text-[#F43F5E]" />
+              <span className="text-[10px] text-[#94A3B8]">Playing Together Since {partner.playingTogetherSince}</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: 'Years', value: counter.years },
+                { label: 'Months', value: counter.months },
+                { label: 'Days', value: counter.days },
+                { label: 'Hours', value: counter.hours },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="text-center py-1.5 rounded-xl"
+                  style={{ background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.15)' }}
+                >
+                  <p className="text-base font-bold font-gaming text-[#F43F5E]">{value}</p>
+                  <p className="text-[9px] text-[#64748B]">{label}</p>
                 </div>
               ))}
             </div>
-            <p className="text-[9px] text-center text-[#F43F5E]/70 mt-2 font-bold">{counter.totalDays}+ days together ❤️</p>
+            <p className="text-center text-[10px] text-[#64748B] mt-2">{counter.totalDays}+ days together ❤️</p>
           </div>
         )}
       </div>
-    </motion.div>
+    </motion.section>
   );
-});
+}
 
-// ── FRIEND CARD ────────────────────────────────────────────
-const FriendCard = memo(function FriendCard({ friend }: { friend: any }) {
-  const kd = friend?.kd ?? 0;
-  const kdColor = getKdColor(kd);
-  return (
-    <div className="flex-shrink-0 w-[84px] rounded-2xl p-2.5 text-center"
-      style={{ background: 'rgba(13,18,31,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}>
-      <div className="w-11 h-11 rounded-xl overflow-hidden mx-auto relative"
-        style={{ border: `2px solid ${kdColor}50`, boxShadow: `0 0 10px ${kdColor}25` }}>
-        <img
-          src={friend.photo || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200'}
-          alt={friend.name}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-[#070B14]"
-          style={{ background: friend.online ? '#22c55e' : '#475569' }} />
-      </div>
-      <p className="text-[9px] font-black text-slate-200 mt-1.5 truncate">{friend.name || '—'}</p>
-      <p className="text-[8px] font-bold" style={{ color: kdColor }}>{formatKd(kd)} KD</p>
-    </div>
-  );
-});
-
-// ── GALLERY PREVIEW ────────────────────────────────────────
-const GalleryPreview = memo(function GalleryPreview({ images, onOpen }: { images: any[]; onOpen: () => void }) {
-  const preview = images.slice(0, 6);
-  if (!preview.length) return null;
-  return (
-    <div className="px-4 mt-5">
-      <SectionHeader title="Gallery Preview" action="Open Gallery" onAction={onOpen} />
-      <div className="grid grid-cols-3 gap-1.5">
-        {preview.map((img: any, i: number) => (
-          <div
-            key={img.id ?? i}
-            onClick={onOpen}
-            className="aspect-square rounded-xl overflow-hidden cursor-pointer"
-            style={{ border: '1px solid rgba(255,255,255,0.07)' }}
-          >
-            <img
-              src={img.url ?? img.src}
-              alt=""
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-});
-
-// ── MAIN PAGE ──────────────────────────────────────────────
 export default function HomePage() {
-  const [profile,  setProfile]  = useState<any>(null);
-  const [social,   setSocial]   = useState<any>(null);
-  const [friends,  setFriends]  = useState<any[]>([]);
-  const [gallery,  setGallery]  = useState<any[]>([]);
-  const [, setSettings] = useState<any>(null);
-  const [loading,  setLoading]  = useState(true);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [social, setSocial] = useState<SocialLinks | null>(null);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [, setGallery] = useState<GalleryImage[]>([]);
+  const [, setSettings] = useState<SiteSettings | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    (async () => {
+    async function loadData() {
       try {
         const [p, s, f, g, st] = await Promise.all([
           getProfile(), getSocialLinks(), getFriends(), getGallery(), getSettings(),
         ]);
-        setProfile(p); setSocial(s); setFriends(f); setGallery(g); setSettings(st);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    })();
+        setProfile(p);
+        setSocial(s);
+        setFriends(f);
+        setGallery(g);
+        setSettings(st);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
   }, []);
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#070B14] flex flex-col items-center justify-center gap-3">
-      <div className="w-11 h-11 rounded-full animate-spin"
-        style={{ border: '3px solid rgba(0,240,255,0.12)', borderTopColor: '#00F0FF' }} />
-      <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: 'rgba(0,240,255,0.5)' }}>
-        Loading Vault...
-      </p>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-  const kd      = profile?.kd ?? 5.24;
+  const kd = profile?.kd ?? 0;
   const kdColor = getKdColor(kd);
-  const badges: string[] = profile?.badges ?? [];
+  const badges = profile?.badges ?? [];
 
   const stats = {
-    totalFriends:   friends.length || 1,
-    totalSynergy:   friends.reduce((s: number, f: any) => s + (f.synergy || 0), 0) || 4499,
-    highestSynergy: friends.length ? Math.max(...friends.map((f: any) => f.synergy || 0)) : 4499,
-    avgSynergy:     friends.length ? Math.round(friends.reduce((s: number, f: any) => s + (f.synergy || 0), 0) / friends.length) : 4499,
-    totalMemories:  friends.reduce((s: number, f: any) => s + (f.memories?.length || 0), 0),
-    collectionAvg:  friends.length ? Math.round(friends.reduce((s: number, f: any) => s + (f.collectionLevel || 0), 0) / friends.length) : 6469,
+    totalFriends: friends.length,
+    totalSynergy: friends.reduce((s, f) => s + (f.synergy || 0), 0),
+    highestSynergy: friends.length > 0 ? Math.max(...friends.map(f => f.synergy || 0)) : 0,
+    avgSynergy: friends.length > 0 ? Math.round(friends.reduce((s, f) => s + (f.synergy || 0), 0) / friends.length) : 0,
+    totalMemories: friends.reduce((s, f) => s + (f.memories?.length || 0), 0),
+    collectionAvg: friends.length > 0 ? Math.round(friends.reduce((s, f) => s + (f.collectionLevel || 0), 0) / friends.length) : 0,
   };
 
   return (
-    <div className="min-h-screen text-white font-sans overflow-x-hidden pb-28" style={{ background: '#070B14' }}>
-
-      {/* ─── TOP BAR ─────────────────────────────────── */}
-      <div className="sticky top-0 z-50 px-4 py-3 flex items-center justify-between"
-        style={{ background: 'rgba(7,11,20,0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(0,240,255,0.07)' }}>
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🛡️</span>
-          <span className="text-xs font-black tracking-[0.22em]" style={{ color: '#00F0FF' }}>BGMI VAULT</span>
-        </div>
-        <button onClick={() => navigate('/admin')} className="p-1.5 rounded-lg"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Settings className="w-4 h-4 text-slate-400" />
-        </button>
-      </div>
-
-      {/* ─── HERO BANNER ─────────────────────────────── */}
-      <div className="relative w-full h-[320px] overflow-hidden rounded-b-[40px]">
+    <div className="pb-24">
+      {/* Hero */}
+      <section className="relative h-[420px] md:h-[500px] overflow-hidden">
         <div
-  className="absolute inset-0 bg-cover bg-center"
-  style={{
-    backgroundImage: profile?.heroBackground
-      ? `url(${profile.heroBackground})`
-      : "linear-gradient(135deg,#0a1628,#0d1f3c,#070B14)",
-    backgroundSize: "cover",
-    backgroundPosition: "center center",
-  }}
-/>
-        {/* strong dark overlay so content is always readable */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(7,11,20,0.55) 0%,rgba(7,11,20,0.75) 60%,#070B14 100%)' }} />
-        {/* subtle grid */}
-        <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
-          style={{ backgroundImage: 'linear-gradient(rgba(0,240,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,1) 1px,transparent 1px)', backgroundSize: '36px 36px' }} />
-
-        {/* online badge */}
-        <motion.div className="absolute top-3 left-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-          style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', backdropFilter: 'blur(8px)' }}
-          initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[9px] font-black text-green-400 uppercase tracking-wider">Online</span>
-        </motion.div>
-
-        {/* tier badge */}
-        {profile?.tier && (
-          <motion.div className="absolute top-3 right-4 px-2.5 py-1 rounded-full text-[9px] font-black"
-            style={{ background: 'rgba(255,159,67,0.15)', border: '1px solid rgba(255,159,67,0.35)', color: '#FF9F43', backdropFilter: 'blur(8px)' }}
-            initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-            ⚔️ {profile.tier}
-          </motion.div>
-        )}
-      </div>
-      
-{/* Premium Animated Background */}
-<div className="absolute inset-0 overflow-hidden pointer-events-none">
-
-  <motion.div
-    animate={{
-      scale: [1, 1.15, 1],
-      opacity: [0.18, 0.32, 0.18],
-    }}
-    transition={{
-      duration: 8,
-      repeat: Infinity,
-      ease: "easeInOut",
-    }}
-    className="absolute -top-24 -left-24 w-72 h-72 rounded-full"
-    style={{
-      background:
-        "radial-gradient(circle,#00F0FF 0%,transparent 70%)",
-      filter: "blur(70px)",
-    }}
-  />
-
-  <motion.div
-    animate={{
-      scale: [1, 1.25, 1],
-      opacity: [0.08, 0.22, 0.08],
-    }}
-    transition={{
-      duration: 9,
-      repeat: Infinity,
-      ease: "easeInOut",
-    }}
-    className="absolute -bottom-20 right-0 w-80 h-80 rounded-full"
-    style={{
-      background:
-        "radial-gradient(circle,#A855F7 0%,transparent 70%)",
-      filter: "blur(80px)",
-    }}
-  />
-
-  <motion.div
-    animate={{
-      rotate: 360,
-    }}
-    transition={{
-      duration: 45,
-      repeat: Infinity,
-      ease: "linear",
-    }}
-    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-               w-[340px] h-[340px] rounded-full"
-    style={{
-      border: "1px solid rgba(0,240,255,.06)",
-    }}
-  />
-
-</div>
-
-{/* Floating Particles */}
-
-{[...Array(8)].map((_, i) => (
-  <motion.div
-    key={i}
-    className="absolute rounded-full"
-    style={{
-      width: 4 + i,
-      height: 4 + i,
-      background:
-        i % 2
-          ? "#00F0FF"
-          : "#A855F7",
-
-      left: `${8 + i * 11}%`,
-      top: `${15 + (i % 4) * 18}%`,
-      opacity: .45,
-      filter: "blur(.3px)",
-    }}
-    animate={{
-      y: [-8, 8, -8],
-      opacity: [.2, .8, .2],
-    }}
-    transition={{
-      duration: 2 + i,
-      repeat: Infinity,
-    }}
-  />
-))}
-      
-      {/* ─── MAIN PROFILE CARD ───────────────────────── */}
-      <div className="px-4 -mt-8 relative z-10">
-        <motion.div
-          className="rounded-3xl p-5 relative overflow-hidden"
+          className="absolute inset-0 bg-cover bg-center"
           style={{
-            background: 'linear-gradient(145deg,rgba(0,240,255,0.05) 0%,rgba(10,14,26,0.97) 50%,rgba(168,85,247,0.04) 100%)',
-            border: '1px solid rgba(0,240,255,0.16)',
-            boxShadow: '0 0 0 1px rgba(0,240,255,0.04),0 8px 40px rgba(0,0,0,0.6)',
+            backgroundImage: profile?.heroBackground
+              ? `url(${profile.heroBackground})`
+              : 'linear-gradient(135deg, #0D1321, #070B14)',
           }}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-        >
-          {/* corner glow */}
-          <div className="absolute top-0 right-0 w-44 h-44 pointer-events-none"
-            style={{ background: 'radial-gradient(circle at top right,rgba(0,240,255,0.07),transparent 65%)' }} />
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#070B14]/30 via-[#070B14]/60 to-[#070B14]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#070B14]/50 to-transparent" />
 
-          {/* ── Avatar + name ── */}
-          <div className="flex items-start gap-4">
-            {/* spinning ring avatar */}
-            <div className="relative flex-shrink-0 w-20 h-20">
-              {/* animated ring */}
-              <motion.div
-                className="absolute -inset-[2px] rounded-2xl"
-                style={{ background: 'conic-gradient(from 0deg,#00F0FF,#A855F7,#FFD700,#00F0FF)' }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
-              />
-              {/* inner mask */}
-              <div className="absolute inset-[2px] rounded-[14px] z-10 overflow-hidden" style={{ background: '#070B14' }}>
-                <img
-                  src={profile?.profilePhoto || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=300'}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              {/* online dot */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full z-20 border-2 border-[#070B14]"
-                style={{ background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,0.7)' }} />
-            </div>
-
-            {/* name block */}
-            <div className="flex-1 min-w-0 pt-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className="text-[22px] font-black leading-tight tracking-wide"
-                  style={{ background: 'linear-gradient(90deg,#fff 30%,#00F0FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  {profile?.ign || 'D3xSHUBHAM'}
-                </h1>
-                {badges.includes('verified') && (
-                  <span className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[8px] font-black flex-shrink-0"
-                    style={{ background: '#2563EB', boxShadow: '0 0 8px rgba(37,99,235,0.6)' }}>✔</span>
+        <div className="relative z-10 h-full flex flex-col justify-end px-5 pb-6">
+          <motion.div
+            className="flex items-end gap-4"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div
+                className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden border-2 border-[#00F0FF]/40"
+                style={{ boxShadow: '0 0 30px rgba(0,240,255,0.2)' }}
+              >
+                {profile?.profilePhoto ? (
+                  <img src={profile.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#00F0FF]/20 to-[#B829DD]/20 flex items-center justify-center">
+                    <Swords className="w-8 h-8 text-[#00F0FF]/50" />
+                  </div>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 font-medium mt-0.5">{profile?.realName || 'SHUBHAM KUMAR NAGVANSHI'}</p>
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <span className="text-[9px] font-black font-mono px-2 py-[3px] rounded-lg"
-                  style={{ background: 'rgba(0,240,255,0.1)', border: '1px solid rgba(0,240,255,0.22)', color: '#00F0FF' }}>
-                  #{profile?.bgmiId || '5305051851'}
+              <motion.div
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-[#070B14]"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </div>
+
+            {/* Name + info */}
+            <div className="flex-1 pb-1">
+              <motion.h1
+                className="text-2xl md:text-3xl font-bold text-white font-gaming"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {profile?.ign || 'Your IGN'}
+              </motion.h1>
+              <motion.p
+                className="text-sm text-[#94A3B8] mt-0.5"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                {profile?.realName || 'Your Name'}
+              </motion.p>
+              <motion.div
+                className="flex items-center gap-3 mt-2 flex-wrap"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                <span className="text-xs bg-[#00F0FF]/10 text-[#00F0FF] px-2 py-0.5 rounded-md border border-[#00F0FF]/20">
+                  ID: {profile?.bgmiId || '---'}
                 </span>
-                <span className="text-[9px] text-slate-500 flex items-center gap-0.5">
-                  <MapPin className="w-2.5 h-2.5" />
-                  {profile?.state || 'Bihar'}, {profile?.country || 'India'}
+                <span className="flex items-center gap-1 text-xs text-[#94A3B8]">
+                  <MapPin className="w-3 h-3" />
+                  {profile?.country || 'Country'}
                 </span>
-              </div>
+                {kd > 0 && (
+                  <span
+                    className="text-xs font-bold px-2 py-0.5 rounded-md border"
+                    style={{ color: kdColor, borderColor: `${kdColor}40`, background: `${kdColor}12` }}
+                  >
+                    {getKdDot(kd)} {formatKd(kd)}+ KD
+                  </span>
+                )}
+              </motion.div>
+
+              {/* Badges */}
+              {badges.length > 0 && (
+                <motion.div
+                  className="flex flex-wrap gap-1.5 mt-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {badges.map(badge => {
+                    const b = BADGE_MAP[badge];
+                    if (!b) return null;
+                    return (
+                      <span
+                        key={badge}
+                        className="text-[10px] px-2 py-0.5 rounded-full border font-semibold"
+                        style={{ color: b.color, borderColor: `${b.color}40`, background: `${b.color}15` }}
+                      >
+                        {b.icon} {b.label}
+                      </span>
+                    );
+                  })}
+                </motion.div>
+              )}
             </div>
-          </div>
+          </motion.div>
+        </div>
+      </section>
 
-          {/* ── KD bar ── */}
-          <div className="mt-4 rounded-2xl p-3 flex items-center gap-4"
-            style={{ background: `${kdColor}0C`, border: `1px solid ${kdColor}28` }}>
-            <div className="flex-1">
-              <p className="text-[8px] text-slate-500 uppercase tracking-[0.14em] font-bold">Kill / Death Ratio</p>
-              <p className="text-[28px] font-black leading-none mt-0.5" style={{ color: kdColor }}>{formatKd(kd)}</p>
-            </div>
-            <div className="w-px h-10 bg-white/5" />
-            <div className="flex-1 text-right">
-              <p className="text-[8px] text-slate-500 uppercase tracking-[0.14em] font-bold">Playing Since</p>
-              <p className="text-sm font-black text-slate-200 mt-0.5">{profile?.playingSince || '8 YEARS'}</p>
-            </div>
-          </div>
-{/* ── Badges ── */}
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {badges.map((badge: string) => {
-              const b = BADGE_MAP[badge];
-              if (!b) return null;
-              return (
-                <span key={badge} className="text-[9px] px-2 py-0.5 rounded-full font-black"
-                  style={{ color: b.color, background: `${b.color}14`, border: `1px solid ${b.color}30` }}>
-                  {b.icon} {b.label}
-                </span>
-              );
-            })}
-            <span className="text-[9px] px-2 py-0.5 rounded-full font-black"
-              style={{ color: '#FF6B6B', background: 'rgba(255,107,107,0.12)', border: '1px solid rgba(255,107,107,0.28)' }}>
-              👗 Mythic Fashion
-            </span>
-            <span className="text-[9px] px-2 py-0.5 rounded-full font-black"
-              style={{ color: '#FFD700', background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.28)' }}>
-              🏆 Conqueror
-            </span>
-          </div>
+      {/* Partner Section */}
+      {profile?.partner?.name && <PartnerSection partner={profile.partner} />}
 
-          {/* ── About ── */}
-          {profile?.bio && (
-            <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: '#00F0FF' }}>About Me</p>
-              <p className="text-[11px] text-slate-400 leading-relaxed">{profile.bio}</p>
-            </div>
-          )}
-
-          {/* ── Stat pills ── */}
-          <div className="flex gap-2 mt-4">
-            {[
-              { label: 'Collection', value: `${profile?.collectionLevel || 71}+`,  color: '#A855F7' },
-              { label: 'Acct Lvl',   value: `${profile?.accountLevel  || 91}+`,    color: '#00F0FF' },
-              { label: 'Popularity', value: profile?.popularity ? `${Math.round(Number(profile.popularity)/1000)}K` : '2268K', color: '#FFD700' },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="flex-1 py-2 rounded-xl text-center"
-                style={{ background: `${color}0C`, border: `1px solid ${color}22` }}>
-                <p className="text-[8px] text-slate-500 uppercase font-bold tracking-wider">{label}</p>
-                <p className="text-sm font-black mt-0.5" style={{ color }}>{value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Instagram ── */}
-          <a
-            href={social?.instagram || 'https://instagram.com/shubhamnagvanshi84823'}
-            target="_blank" rel="noreferrer"
-            className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-black active:scale-95 transition-transform"
-            style={{ background: 'linear-gradient(90deg,rgba(244,63,94,0.14),rgba(168,85,247,0.14))', border: '1px solid rgba(244,63,94,0.28)', color: '#F472B6' }}
-          >
-            <Instagram className="w-3.5 h-3.5" /> Follow on Instagram
-          </a>
-        </motion.div>
-      </div>
-
-      {/* ─── PARTNER ─────────────────────────────────── */}
-      <PartnerSection partner={profile?.partner} />
-
-      {/* ─── VAULT STATS ─────────────────────────────── */}
-      <motion.div className="px-4 mt-5" variants={staggerContainer} initial="hidden" animate="visible">
-        <SectionHeader title="Vault Stats" />
-        <div className="grid grid-cols-3 gap-2">
+      {/* Quick Stats */}
+      <motion.section
+        className="px-5 mt-4"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {[
-            { label: 'Friends',   value: `${stats.totalFriends}+`,   color: '#00F0FF' },
-            { label: 'Total SYN', value: `${stats.totalSynergy}+`,   color: '#FF6B6B' },
-            { label: 'Avg SYN',   value: stats.avgSynergy,           color: '#FFD700' },
-            { label: 'Coll Avg',  value: stats.collectionAvg,        color: '#A855F7' },
-            { label: 'Memories',  value: stats.totalMemories,        color: '#4ECDC4' },
-            { label: 'Peak SYN',  value: stats.highestSynergy,       color: '#00E5FF' },
-          ].map((s, i) => (
-            <motion.div key={s.label} className="py-3 rounded-2xl text-center"
-              style={{ background: `${s.color}09`, border: `1px solid ${s.color}1E` }}
-              variants={fadeInUp} custom={i}>
-              <p className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">{s.label}</p>
-              <p className="text-base font-black mt-0.5" style={{ color: s.color }}>{s.value}</p>
+            { label: 'Friends',       value: stats.totalFriends,  icon: UsersIcon,   color: '#00F0FF' },
+            { label: 'Total Synergy', value: stats.totalSynergy,  icon: Heart,       color: '#FF6B6B' },
+            { label: 'Avg Synergy',   value: stats.avgSynergy,    icon: Award,       color: '#FFD700' },
+            { label: 'Coll. Avg',     value: stats.collectionAvg, icon: Target,      color: '#B829DD' },
+            { label: 'Memories',      value: stats.totalMemories, icon: ImageIcon,   color: '#4ECDC4' },
+            { label: 'Highest SYN',   value: stats.highestSynergy,icon: TrophyIcon,  color: '#00E5FF' },
+          ].map((stat) => (
+            <motion.div key={stat.label} variants={fadeInUp}>
+              <GlassCard className="p-3" hover={false}>
+                <div className="flex items-center gap-2 mb-2">
+                  <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
+                  <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider">{stat.label}</span>
+                </div>
+                <AnimatedCounter
+                  end={stat.value}
+                  className="text-xl font-bold font-gaming"
+                  suffix="+"
+                  style={{ color: stat.color } as React.CSSProperties}
+                />
+              </GlassCard>
             </motion.div>
           ))}
         </div>
-      </motion.div>
+      </motion.section>
 
-      {/* ─── PROFILE DETAILS ─────────────────────────── */}
-      <div className="px-4 mt-5">
-        <SectionHeader title="Profile Details" />
-        <div className="rounded-2xl p-4" style={{ background: 'rgba(10,14,26,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="grid grid-cols-2 gap-y-4 gap-x-4">
+      {/* Profile Details */}
+      <motion.section
+        className="px-5 mt-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <GlassCard className="p-4" hover={false}>
+          <h3 className="text-sm font-bold text-[#00F0FF] mb-4 font-gaming flex items-center gap-2">
+            <Swords className="w-4 h-4" />
+            Profile Details
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {/* KD */}
+            {kd > 0 && (
+              <div className="col-span-2">
+                <div
+                  className="flex items-center justify-between p-3 rounded-xl border"
+                  style={{ background: `${kdColor}08`, borderColor: `${kdColor}25` }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Swords className="w-4 h-4" style={{ color: kdColor }} />
+                    <span className="text-xs text-[#94A3B8]">K/D Ratio</span>
+                  </div>
+                  <span className="text-lg font-bold font-gaming" style={{ color: kdColor }}>
+                    {getKdDot(kd)} {formatKd(kd)}+
+                  </span>
+                </div>
+              </div>
+            )}
+
             {[
-              { label: 'Current Tier',   value: profile?.tier             || 'Ace Dominator', color: '#FF9F43' },
-              { label: 'Highest Tier',   value: profile?.highestTier      || 'Ace Dominator', color: '#FF5252' },
-              { label: 'Collection Lvl', value: `${profile?.collectionLevel || 71}+`,         color: '#A855F7' },
-              { label: 'Account Level',  value: `${profile?.accountLevel   || 91}+`,          color: '#00F0FF' },
-              { label: 'Popularity',     value: `${profile?.popularity     || '2267874'}+`,   color: '#FFD700' },
-              { label: 'Achieve. Pts',   value: `${profile?.achievementPoints || 0}+`,        color: '#4ECDC4' },
-              { label: 'Total Matches',  value: `${profile?.matches        || 0}+`,           color: '#00E5FF' },
-              { label: 'Playing Since',  value: profile?.playingSince      || '8 YEARS',      color: '#10B981' },
-              { label: 'State',          value: profile?.state             || 'BIHAR',        color: '#6366F1' },
-              { label: 'Country',        value: profile?.country           || 'INDIA',        color: '#F59E0B' },
+              { label: 'Collection Level', value: `${profile?.collectionLevel || 0}+`, icon: Target,    color: '#B829DD' },
+              { label: 'Account Level',    value: `${profile?.accountLevel || 0}+`,    icon: Award,     color: '#00F0FF' },
+              { label: 'Popularity',       value: `${profile?.popularity || 0}+`,      icon: Star,      color: '#FF6B6B' },
+              { label: 'Likes',            value: `${profile?.likes || 0}+`,           icon: Heart,     color: '#F43F5E' },
+              { label: 'Matches',          value: `${profile?.matches || 0}+`,         icon: Swords,    color: '#00E5FF' },
+              { label: 'Achieve. Points',  value: `${profile?.achievementPoints || 0}+`, icon: Award,   color: '#FFD700' },
+              { label: 'Current Tier',     value: profile?.currentTier || '-',         icon: TrophyIcon,color: '#FFD700' },
+              { label: 'Highest Tier',     value: profile?.highestTier || '-',         icon: TrophyIcon,color: '#4ECDC4' },
+              { label: 'Playing Since',    value: profile?.playingSince || '-',        icon: Calendar,  color: '#94A3B8' },
+              { label: 'State',            value: profile?.state || '-',               icon: MapPin,    color: '#94A3B8' },
             ].map((item) => (
-              <div key={item.label} className="min-w-0">
-                <p className="text-[8px] text-slate-600 uppercase tracking-wider font-black">{item.label}</p>
-                <p className="text-[11px] font-black mt-0.5 truncate" style={{ color: item.color }}>{item.value}</p>
+              <div key={item.label} className="flex items-start gap-2 p-2 rounded-xl bg-[#070B14]/40">
+                <item.icon className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: item.color }} />
+                <div>
+                  <p className="text-[10px] text-[#64748B]">{item.label}</p>
+                  <p className="text-xs font-semibold text-[#E2E8F0]">{item.value}</p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </GlassCard>
+      </motion.section>
 
-      {/* ─── QUICK ACTIONS ───────────────────────────── */}
-      <div className="px-4 mt-5">
-        <SectionHeader title="Quick Actions" />
-        <div className="grid grid-cols-2 gap-2.5">
-          {quickActions.map((action, i) => (
-            <motion.button
-              key={action.label}
-              onClick={() => navigate(action.path)}
-              className="rounded-2xl p-4 text-left flex flex-col gap-3 relative overflow-hidden active:scale-95 transition-transform h-[86px]"
-              style={{ background: `${action.color}09`, border: `1px solid ${action.color}22` }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-            >
-              {/* icon */}
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: `${action.color}16`, border: `1px solid ${action.color}28` }}>
-                <action.icon className="w-4 h-4" style={{ color: action.color }} />
-              </div>
-              {/* label + arrow */}
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-black text-slate-200">{action.label}</p>
-                <ChevronRight className="w-3.5 h-3.5" style={{ color: action.color }} />
-              </div>
-              {/* corner glow */}
-              <div className="absolute -bottom-5 -right-5 w-16 h-16 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle,${action.color}18,transparent 70%)` }} />
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── FEATURED FRIENDS ────────────────────────── */}
-      {friends.length > 0 && (
-        <div className="mt-5">
-          <div className="px-4">
-            <SectionHeader title="Featured Friends" action="View All" onAction={() => navigate('/friends')} />
-          </div>
-          <div className="flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none">
-            {friends.slice(0, 8).map((friend: any, idx: number) => (
-              <motion.div
-                key={friend.id ?? idx}
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.06 }}
-              >
-                <FriendCard friend={friend} />
-              </motion.div>
-            ))}
-            {/* View All tile */}
-            <button
-              onClick={() => navigate('/friends')}
-              className="flex-shrink-0 w-[84px] rounded-2xl flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform"
-              style={{ background: 'rgba(0,240,255,0.05)', border: '1px dashed rgba(0,240,255,0.22)' }}
-            >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,240,255,0.1)' }}>
-                <ChevronRight className="w-4 h-4 text-[#00F0FF]" />
-              </div>
-              <p className="text-[8px] font-black text-[#00F0FF]">View All</p>
-            </button>
-          </div>
-        </div>
+      {/* About Me */}
+      {profile?.aboutMe && (
+        <motion.section
+          className="px-5 mt-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <GlassCard className="p-4" hover={false}>
+            <h3 className="text-sm font-bold text-[#00F0FF] mb-2 font-gaming">About Me</h3>
+            <p className="text-xs text-[#94A3B8] leading-relaxed">{profile.aboutMe}</p>
+          </GlassCard>
+        </motion.section>
       )}
 
-      {/* ─── GALLERY PREVIEW ─────────────────────────── */}
-      <GalleryPreview images={gallery} onOpen={() => navigate('/gallery')} />
+      {/* Social Links */}
+      {social && (social.instagram || social.youtube || social.facebook || social.discord) && (
+        <motion.section
+          className="px-5 mt-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <GlassCard className="p-4" hover={false}>
+            <h3 className="text-sm font-bold text-[#00F0FF] mb-3 font-gaming">Connect</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {social.instagram && (
+                <a href={social.instagram} target="_blank" rel="noopener noreferrer">
+                  <motion.div
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#E4405F]/10 to-[#F77737]/10 border border-[#E4405F]/20 text-[#E4405F]"
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  >
+                    <Instagram className="w-4 h-4" />
+                    <span className="text-xs font-medium">Instagram</span>
+                  </motion.div>
+                </a>
+              )}
+              {social.youtube && (
+                <a href={social.youtube} target="_blank" rel="noopener noreferrer">
+                  <motion.div
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#FF0000]/10 to-[#CC0000]/10 border border-[#FF0000]/20 text-[#FF0000]"
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  >
+                    <Youtube className="w-4 h-4" />
+                    <span className="text-xs font-medium">YouTube</span>
+                  </motion.div>
+                </a>
+              )}
+              {social.facebook && (
+                <a href={social.facebook} target="_blank" rel="noopener noreferrer">
+                  <motion.div
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#1877F2]/10 to-[#0D5CB6]/10 border border-[#1877F2]/20 text-[#1877F2]"
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  >
+                    <Facebook className="w-4 h-4" />
+                    <span className="text-xs font-medium">Facebook</span>
+                  </motion.div>
+                </a>
+              )}
+              {social.discord && (
+                <a href={social.discord} target="_blank" rel="noopener noreferrer">
+                  <motion.div
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#5865F2]/10 to-[#4752C4]/10 border border-[#5865F2]/20 text-[#5865F2]"
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="text-xs font-medium">Discord</span>
+                  </motion.div>
+                </a>
+              )}
+            </div>
+          </GlassCard>
+        </motion.section>
+      )}
 
-      {/* ─── BOTTOM NAV ──────────────────────────────── */}
-      <div
-        className="fixed bottom-4 left-4 right-4 z-50 rounded-2xl flex items-center justify-around py-2.5"
-        style={{
-          background: 'rgba(7,11,20,0.94)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(0,240,255,0.09)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.6),0 0 24px rgba(0,240,255,0.05)',
-        }}
+      {/* Quick Actions */}
+      <motion.section
+        className="px-5 mt-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
       >
-        {NAV_TABS.map((tab) => {
-          const active = tab.path === '/';
-          return (
-            <button
-              key={tab.label}
-              onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-90"
-              style={{
-                background: active ? 'rgba(0,240,255,0.1)' : 'transparent',
-                border:     active ? '1px solid rgba(0,240,255,0.2)' : '1px solid transparent',
-              }}
+        <h3 className="text-sm font-bold text-[#00F0FF] mb-3 font-gaming">Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {quickActions.map((action, i) => (
+            <motion.div
+              key={action.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.8 + i * 0.05 }}
             >
-              <span className="text-[15px] leading-none">{tab.emoji}</span>
-              <span className="text-[8px] font-black uppercase tracking-wide"
-                style={{ color: active ? '#00F0FF' : 'rgba(148,163,184,0.55)' }}>
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              <GlassCard className="p-4 cursor-pointer group" onClick={() => navigate(action.path)}>
+                <div className="flex items-center justify-between mb-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: `${action.color}15`, border: `1px solid ${action.color}30` }}
+                  >
+                    <action.icon className="w-5 h-5" style={{ color: action.color }} />
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#64748B] group-hover:text-[#00F0FF] transition-colors" />
+                </div>
+                <p className="text-sm font-medium text-[#E2E8F0]">{action.label}</p>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
+      </motion.section>
 
+      {/* Featured Friends */}
+      {friends.length > 0 && (
+        <motion.section
+          className="px-5 mt-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1 }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-[#00F0FF] font-gaming">Featured Friends</h3>
+            <button onClick={() => navigate('/friends')} className="text-[10px] text-[#94A3B8] hover:text-[#00F0FF]">
+              View All
+            </button>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
+            {friends.slice(0, 6).map((friend) => {
+              const fKd = friend.kd ?? 0;
+              const fKdColor = getKdColor(fKd);
+              return (
+                <motion.div
+                  key={friend.id}
+                  className="flex-shrink-0 w-20 cursor-pointer"
+                  onClick={() => navigate(`/friend/${friend.id}`)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#00F0FF]/20 mb-1.5">
+                    {friend.profilePhoto ? (
+                      <img src={friend.profilePhoto} alt={friend.ign} className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#00F0FF]/10 to-[#B829DD]/10 flex items-center justify-center">
+                        <span className="text-lg font-bold text-[#00F0FF]/50">{friend.ign[0]}</span>
+                      </div>
+                    )}
+                    {friend.isOnline && (
+                      <div className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-green-500 border border-[#070B14]" />
+                    )}
+                  </div>
+                  <p className="text-[10px] text-center text-[#E2E8F0] truncate">{friend.ign}</p>
+                  <p className="text-[9px] text-center font-bold" style={{ color: fKdColor }}>
+                    {formatKd(fKd)}+ KD
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.section>
+      )}
     </div>
   );
-      }
+            }
