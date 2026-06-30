@@ -222,15 +222,6 @@ export default function HomePage() {
   const kdColor = getKdColor(kd);
   const badges = profile?.badges ?? [];
 
-  const stats = {
-    totalFriends: friends.length,
-    totalSynergy: friends.reduce((s, f) => s + (f.synergy || 0), 0),
-    highestSynergy: friends.length > 0 ? Math.max(...friends.map(f => f.synergy || 0)) : 0,
-    avgSynergy: friends.length > 0 ? Math.round(friends.reduce((s, f) => s + (f.synergy || 0), 0) / friends.length) : 0,
-    totalMemories: friends.reduce((s, f) => s + (f.memories?.length || 0), 0),
-    collectionAvg: friends.length > 0 ? Math.round(friends.reduce((s, f) => s + (f.collectionLevel || 0), 0) / friends.length) : 0,
-  };
-
   return (
     <div className="pb-24">
       {/* Hero */}
@@ -345,40 +336,6 @@ export default function HomePage() {
 
       {/* Partner Section */}
       {profile?.partner?.name && <PartnerSection partner={profile.partner} />}
-
-      {/* Quick Stats */}
-      <motion.section
-        className="px-5 mt-4"
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {[
-            { label: 'Friends',       value: stats.totalFriends,  icon: UsersIcon,   color: '#00F0FF' },
-            { label: 'Total Synergy', value: stats.totalSynergy,  icon: Heart,       color: '#FF6B6B' },
-            { label: 'Avg Synergy',   value: stats.avgSynergy,    icon: Award,       color: '#FFD700' },
-            { label: 'Coll. Avg',     value: stats.collectionAvg, icon: Target,      color: '#B829DD' },
-            { label: 'Memories',      value: stats.totalMemories, icon: ImageIcon,   color: '#4ECDC4' },
-            { label: 'Highest SYN',   value: stats.highestSynergy,icon: TrophyIcon,  color: '#00E5FF' },
-          ].map((stat) => (
-            <motion.div key={stat.label} variants={fadeInUp}>
-              <GlassCard className="p-3" hover={false}>
-                <div className="flex items-center gap-2 mb-2">
-                  <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
-                  <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider">{stat.label}</span>
-                </div>
-                <AnimatedCounter
-                  end={stat.value}
-                  className="text-xl font-bold font-gaming"
-                  suffix="+"
-                  style={{ color: stat.color } as React.CSSProperties}
-                />
-              </GlassCard>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
 
       {/* Profile Details */}
       <motion.section
